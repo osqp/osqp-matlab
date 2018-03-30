@@ -19,6 +19,7 @@ cur_dir = pwd;
 cd(osqp_dir_matlab);
 make_osqp purge;
 make_osqp;
+
 % Get OSQP version
 s = osqp;
 version = s.version;
@@ -43,7 +44,7 @@ fprintf('[done]\n');
 
 % Copying license
 fprintf('Copying license...\n');
-copyfile(fullfile(osqp_dir_matlab, '..', '..','LICENSE'), ...
+copyfile(fullfile(osqp_dir_matlab, 'LICENSE'), ...
 	 fullfile(package_name));
 fprintf('[done]\n');
 

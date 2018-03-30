@@ -103,7 +103,7 @@ lib_name = sprintf('libosqpstatic%s', lib_ext);
 % Set osqp directory and osqp_build directory
 current_dir = pwd;
 [makefile_path,~,~] = fileparts(which('make_osqp.m'));
-osqp_dir = fullfile(makefile_path, '..', '..');
+osqp_dir = fullfile(makefile_path, 'osqp_sources');
 osqp_build_dir = fullfile(osqp_dir, 'build');
 suitesparse_dir = fullfile(osqp_dir, 'lin_sys', 'direct', 'suitesparse');
 cg_sources_dir = fullfile('.','codegen', 'sources');
@@ -154,7 +154,7 @@ if( any(strcmpi(what,'osqp')) || any(strcmpi(what,'all')) )
 
 
     % Change directory back to matlab interface
-    cd(fullfile('..', 'interfaces', 'matlab'));
+    cd(makefile_path);
 
     % Copy static library to current folder
     lib_origin = fullfile(osqp_build_dir, 'out', lib_name);
