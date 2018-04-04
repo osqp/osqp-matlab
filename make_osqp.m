@@ -84,8 +84,8 @@ if (isunix && ~ismac)
    mex_libs = sprintf('%s %s', mex_libs, '-ldl');
 end
 
-% Add large arrays support if computer 64 bit
-if (~isempty (strfind (computer, '64')))
+% Add large arrays support if computer is 64 bit on pre-2018 versions
+if (~isempty (strfind (computer, '64')) & verLessThan('matlab','R2018a'))
     mexoptflags = sprintf('%s %s', mexoptflags, '-largeArrayDims');
 end
 
