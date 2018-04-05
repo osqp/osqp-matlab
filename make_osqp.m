@@ -30,13 +30,14 @@ elseif ( nargin == 1 && ismember('-verbose', varargin) )
     verbose = true;
 else
     what = varargin{nargin};
-    if ~(contains(what, 'all')      || ...
-         contains(what, 'osqp')     || ...
-         contains(what, 'osqp_mex') || ...
-         contains(what, 'clean')    || ...
-         contains(what, 'purge'))
+    if(isempty(strfind(what, 'all'))        && ...
+        isempty(strfind(what, 'osqp'))      && ...
+        isempty(strfind(what, 'osqp_mex'))  && ...
+        isempty(strfind(what, 'clean'))     && ...
+        isempty(strfind(what, 'purge')))
             fprintf('No rule to make target "%s", exiting.\n', what);
     end
+    
     verbose = ismember('-verbose', varargin);
 end
 
@@ -82,7 +83,7 @@ end
 
 % Add large arrays support if computer is 64 bit and a pre-2018 version
 % Release R2018a corresponds to Matlab version 9.4
-if contains(computer, '64') && verLessThan('matlab', '9.4')
+if (~isempty(strfind(computer, '64')) && verLessThan('matlab', '9.4'))
     mexoptflags = sprintf('%s %s', mexoptflags, '-largeArrayDims');
 end
 
@@ -132,7 +133,7 @@ if( any(strcmpi(what,'osqp')) || any(strcmpi(what,'all')) )
 
     % Extend path for CMAKE mac (via Homebrew)
     PATH = getenv('PATH');
-    if ismac && ~contains(PATH, '/usr/local/bin')
+    if ((ismac) && (isempty(strfind(PATH, '/usr/local/bin'))))
         setenv('PATH', [PATH ':/usr/local/bin']);
     end
 
