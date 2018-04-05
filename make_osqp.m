@@ -89,6 +89,14 @@ if (~isempty (strfind (computer, '64')) & verLessThan('matlab','R2018a'))
     mexoptflags = sprintf('%s %s', mexoptflags, '-largeArrayDims');
 end
 
+%Force Matlab to respect old-style usage of mxGetPr in releases after 2018a,
+%which use interleaved complex data.   Note that the -R2017b flag is badly
+%named since it indicates that non-interleaved complex data model is being used; 
+%it is not really specific to the release year
+if(~verLessThan('matlab','R2018a'))
+    mexoptflags = sprintf('%s %s', mexoptflags, '-R2017b');
+end
+    
 
 % Set optimizer flag
 if (~ispc)
