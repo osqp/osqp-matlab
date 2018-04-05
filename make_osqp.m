@@ -25,23 +25,19 @@ function make_osqp(varargin)
 if( nargin == 0 )
     what = {'all'};
     verbose = false;
-elseif ( nargin == 1 && strcmp(varargin{1}, '-verbose'))
+elseif ( nargin == 1 && ismember('-verbose', varargin) )
     what = {'all'};
     verbose = true;
 else
     what = varargin{nargin};
-    if(isempty(strfind(what, 'all'))         && ...
-        isempty(strfind(what, 'osqp'))        && ...
-        isempty(strfind(what, 'osqp_mex')) && ...
-        isempty(strfind(what, 'clean'))       && ...
-        isempty(strfind(what, 'purge')))
+    if ~(contains(what, 'all')      || ...
+         contains(what, 'osqp')     || ...
+         contains(what, 'osqp_mex') || ...
+         contains(what, 'clean')    || ...
+         contains(what, 'purge'))
             fprintf('No rule to make target "%s", exiting.\n', what);
     end
-    if ismember('-verbose', varargin)
-        verbose = true;
-    else
-        verbose = false;
-    end
+    verbose = ismember('-verbose', varargin);
 end
 
 
@@ -85,7 +81,8 @@ if (isunix && ~ismac)
 end
 
 % Add large arrays support if computer is 64 bit and a pre-2018 version
-if (~isempty (strfind (computer, '64')) & verLessThan('matlab','R2018a'))
+% Release R2018a corresponds to Matlab version 9.4
+if contains(computer, '64') && verLessThan('matlab', '9.4')
     mexoptflags = sprintf('%s %s', mexoptflags, '-largeArrayDims');
 end
 
@@ -93,7 +90,7 @@ end
 %which use interleaved complex data.   Note that the -R2017b flag is badly
 %named since it indicates that non-interleaved complex data model is being used; 
 %it is not really specific to the release year
-if(~verLessThan('matlab','R2018a'))
+if ~verLessThan('matlab', '9.4')
     mexoptflags = sprintf('%s %s', mexoptflags, '-R2017b');
 end
     
@@ -135,7 +132,7 @@ if( any(strcmpi(what,'osqp')) || any(strcmpi(what,'all')) )
 
     % Extend path for CMAKE mac (via Homebrew)
     PATH = getenv('PATH');
-    if ((ismac) && (isempty(strfind(PATH, '/usr/local/bin'))))
+    if ismac && ~contains(PATH, '/usr/local/bin')
         setenv('PATH', [PATH ':/usr/local/bin']);
     end
 
