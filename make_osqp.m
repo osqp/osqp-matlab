@@ -41,6 +41,11 @@ else
     verbose = ismember('-verbose', varargin);
 end
 
+%% Try to unlock any pre-existing version of osqp_mex
+
+% this prevents compile errors if a user builds, runs osqp
+% and then tries to recompile
+munlock osqp_mex;
 
 
 %% Basic compile commands
