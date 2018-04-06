@@ -5,20 +5,6 @@
 #include "ctrlc.h"             // Needed for interrupt
 #include "suitesparse_ldl.h"   // To extract workspace for codegen
 
-
-// Interrupt handler
-extern "C" bool utIsInterruptPending(void);
-extern "C" bool utSetInterruptEnabled(bool);
-
-int IsInterruptPending(void){
-    return (int)utIsInterruptPending();
-}
-
-int SetInterruptEnabled(int x){
-    return (int)utSetInterruptEnabled((bool)x);
-}
-
-
 // all of the OSQP_INFO fieldnames as strings
 const char* OSQP_INFO_FIELDS[] = {"iter",         //c_int
                                   "status" ,        //char*
@@ -139,15 +125,15 @@ mxArray*  copyWorkToMxStruct(OSQPWorkspace* work);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {   OsqpData* osqpData;  // OSQP data identifier
-    
+
     // Static string for static methods
     char stat_string[64];
-    
+
     // Get the command string
     char cmd[64];
 	  if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
 		mexErrMsgTxt("First input should be a command string less than 64 characters long.");
-  
+
     // new object
     if (!strcmp("new", cmd)) {
         // Check parameters
@@ -162,7 +148,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Check for a second input, which should be the class instance handle or string 'static'
         if (nrhs < 2)
     		mexErrMsgTxt("Second input should be a class instance handle or the string 'static'.");
-     
+
     if(mxGetString(prhs[1], stat_string, sizeof(stat_string))){
         // If we are dealing with non-static methods, get the class instance pointer from the second input
         osqpData = convertMat2Ptr<OsqpData>(prhs[1]);
@@ -171,7 +157,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             mexErrMsgTxt("Second argument for static functions is string 'static'");
         }
     }
-    
+
     // delete the object and its data
     if (!strcmp("delete", cmd)) {
 
@@ -240,8 +226,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // Warn if other commands were ignored
         if (nrhs > 2)
             mexWarnMsgTxt("Default settings: unexpected number of arguments.");
-        
-        
+
+
       //Create a Settings structure in default form and report the results
       //Useful for external solver packages (e.g. Yalmip) that want to
       //know which solver settings are supported
@@ -671,13 +657,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             plhs[0] = mxCreateDoubleScalar(OSQP_TIME_LIMIT_REACHED);
             return;
         }
-        
+
         // Linear system solvers
         if (!strcmp("SUITESPARSE_LDL_SOLVER", constant)){
             plhs[0] = mxCreateDoubleScalar(SUITESPARSE_LDL_SOLVER);
             return;
         }
-        
+
         if (!strcmp("MKL_PARDISO_SOLVER", constant)){
             plhs[0] = mxCreateDoubleScalar(MKL_PARDISO_SOLVER);
             return;
