@@ -45,7 +45,10 @@ end
 
 % this prevents compile errors if a user builds, runs osqp
 % and then tries to recompile
-munlock osqp_mex;
+if(mislocked('osqp_mex'))
+    munlock('osqp_mex');
+end
+
 
 
 %% Basic compile commands
