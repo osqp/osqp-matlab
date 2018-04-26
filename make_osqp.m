@@ -37,7 +37,7 @@ else
         isempty(strfind(what, 'purge')))
             fprintf('No rule to make target "%s", exiting.\n', what);
     end
-    
+
     verbose = ismember('-verbose', varargin);
 end
 
@@ -97,12 +97,12 @@ end
 
 %Force Matlab to respect old-style usage of mxGetPr in releases after 2018a,
 %which use interleaved complex data.   Note that the -R2017b flag is badly
-%named since it indicates that non-interleaved complex data model is being used; 
+%named since it indicates that non-interleaved complex data model is being used;
 %it is not really specific to the release year
 if ~verLessThan('matlab', '9.4')
     mexoptflags = sprintf('%s %s', mexoptflags, '-R2017b');
 end
-    
+
 
 % Set optimizer flag
 if (~ispc)
@@ -228,13 +228,13 @@ if( any(strcmpi(what,'codegen')) || any(strcmpi(what,'all')) )
     for j = 1:length(hdirs)
         hfiles = dir(fullfile(hdirs{j},'*.h'));
         for i = 1 : length(hfiles)
-            if ~any(strcmp(hfiles(i).name, {'glob_opts.h','cs.h', 'ctrlc.h', 'lin_sys.h', 'polish.h', 'SuiteSparse_config.h'}))
+            if ~any(strcmp(hfiles(i).name, {'osqp_configure.h','cs.h', 'ctrlc.h', 'lin_sys.h', 'polish.h', 'SuiteSparse_config.h'}))
                 copyfile(fullfile(hdirs{j}, hfiles(i).name), ...
                     fullfile(cg_include_dir, hfiles(i).name));
             end
         end
     end
-    
+
     % Copy configure files
     cg_configure_dir = fullfile(cg_sources_dir, 'configure');
     if ~exist(cg_configure_dir, 'dir')
@@ -248,8 +248,8 @@ if( any(strcmpi(what,'codegen')) || any(strcmpi(what,'all')) )
                 fullfile(cg_configure_dir, configure_files(i).name));
         end
     end
-    
-   
+
+
     fprintf('\t\t\t\t\t[done]\n');
 
 end

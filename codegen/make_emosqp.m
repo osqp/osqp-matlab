@@ -12,7 +12,7 @@ mexoptflags = '-DMATLAB';
 cmake_args = sprintf('-DEMBEDDED:INT=%i', EMBEDDED_FLAG);
 
 
-% Generate glop_opts.h file by running cmake
+% Generate osqp_configure.h file by running cmake
 current_dir = pwd;
 build_dir = fullfile(target_dir, 'build');
 cd(target_dir);
@@ -32,7 +32,7 @@ end
 if(status)
     fprintf('\n');
     disp(output);
-    error('Error generating glob_opts.h');
+    error('Error generating osqp_configure.h');
 end
 cd(current_dir);
 
