@@ -1,6 +1,6 @@
 # Matlab interface for OSQP
 
-Matlab wrapper for [OSQP](http://osqp.readthedocs.io/): the Operator Splitting QP Solver.
+Matlab wrapper for [OSQP](https://osqp.org/): the Operator Splitting QP Solver.
 
 The OSQP (Operator Splitting Quadratic Program) solver is a numerical optimization package for solving problems in the form
 ```
