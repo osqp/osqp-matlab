@@ -594,6 +594,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             osqpData->work->info->obj_val = -mxGetInf();
         }
 
+        if (osqpData->work->info->status_val == OSQP_NON_CVX) {
+            osqpData->work->info->obj_val = mxGetNaN();
+        }
+
         plhs[4] = copyInfoToMxStruct(osqpData->work->info); // Info structure
 
         return;
@@ -650,6 +654,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         if (!strcmp("OSQP_MAX_ITER_REACHED", constant)){
             plhs[0] = mxCreateDoubleScalar(OSQP_MAX_ITER_REACHED);
+            return;
+        }
+
+        if (!strcmp("OSQP_NON_CVX", constant)){
+            plhs[0] = mxCreateDoubleScalar(OSQP_NON_CVX);
             return;
         }
 

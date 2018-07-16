@@ -6,7 +6,7 @@ unittest_dir = fullfile(osqp_path, 'unittests');
 suiteFolder = TestSuite.fromFolder(unittest_dir);
 
 % Solve individual test file
-% suiteFolder = TestSuite.fromFile('unittests/update_matrices_tests.m');
+%suiteFolder = TestSuite.fromFile('unittests/non_cvx_tests.m');
 
 
 % Run all suite
