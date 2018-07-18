@@ -29,7 +29,10 @@ classdef non_cvx_tests < matlab.unittest.TestCase
             % Check if they are close
             testCase.verifyEqual(results.info.status_val, osqp.constant('OSQP_NON_CVX'))
             testCase.verifyTrue(isnan(results.info.obj_val))
-
+        end
+        
+        function test_nan(testCase)
+            testCase.verifyTrue(isnan(osqp.constant('OSQP_NAN')))
         end
     end
 

@@ -613,7 +613,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             return;
         }
         if (!strcmp("OSQP_NAN", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_NAN);
+            plhs[0] = mxCreateDoubleScalar(mxGetNaN());
             return;
         }
 
