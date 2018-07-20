@@ -142,7 +142,7 @@ if( any(strcmpi(what,'osqp')) || any(strcmpi(what,'all')) )
 
     % Extend path for CMake mac (via Homebrew)
     PATH = getenv('PATH');
-    if ((ismac) && (~contains(PATH, '/usr/local/bin')))
+    if ((ismac) && (isempty(strfind(PATH, '/usr/local/bin'))))
         setenv('PATH', [PATH ':/usr/local/bin']);
     end
 
