@@ -6,7 +6,8 @@ f = fopen(output, 'w');
 % Include types, constants and private header
 fprintf(f, '#include \"types.h\"\n');
 fprintf(f, '#include \"constants.h\"\n');
-fprintf(f, '#include \"suitesparse_ldl.h\"\n\n');
+fprintf(f, '#include \"qdldl_types.h\"\n');
+fprintf(f, '#include \"qdldl.h\"\n\n');
 
 % Write data structure
 write_data(f, work.data);
@@ -137,21 +138,22 @@ if embedded_flag ~= 1
     write_mat(f, linsys_solver.KKT, 'linsys_solver_KKT');
     write_vec(f, linsys_solver.PtoKKT, 'linsys_solver_PtoKKT', 'c_int');
     write_vec(f, linsys_solver.AtoKKT, 'linsys_solver_AtoKKT', 'c_int');
-    write_vec(f, linsys_solver.AtoKKT, 'linsys_solver_rhotoKKT', 'c_int');
+    write_vec(f, linsys_solver.rhotoKKT, 'linsys_solver_rhotoKKT', 'c_int');
+    write_vec(f, linsys_solver.D, 'linsys_solver_D', 'c_float');
+    write_vec(f, linsys_solver.etree, 'linsys_solver_etree', 'c_int');
     write_vec(f, linsys_solver.Lnz, 'linsys_solver_Lnz', 'c_int');
-    write_vec(f, linsys_solver.Y, 'linsys_solver_Y', 'c_float');
-    write_vec(f, linsys_solver.Pattern, 'linsys_solver_Pattern', 'c_int');
-    write_vec(f, linsys_solver.Flag, 'linsys_solver_Flag', 'c_int');
-    write_vec(f, linsys_solver.Parent, 'linsys_solver_Parent', 'c_int');
+    write_vec(f, linsys_solver.iwork, 'linsys_solver_iwork', 'c_int');
+    write_vec(f, linsys_solver.bwork, 'linsys_solver_bwork', 'c_int');
+    write_vec(f, linsys_solver.fwork, 'linsys_solver_fwork', 'c_float');
 end
 
-fprintf(f, 'suitesparse_ldl_solver linsys_solver = ');
-fprintf(f, '{SUITESPARSE_LDL_SOLVER, &solve_linsys_suitesparse_ldl, ');
+fprintf(f, 'qdldl_solver linsys_solver = ');
+fprintf(f, '{QDLDL_SOLVER, &solve_linsys_qdldl, ');
 if embedded_flag ~= 1
-    fprintf(f, ['&update_linsys_solver_matrices_suitesparse_ldl, &update_linsys_solver_rho_vec_suitesparse_ldl, ', ...
+    fprintf(f, ['&update_linsys_solver_matrices_qdldl, &update_linsys_solver_rho_vec_qdldl, ', ...
             '&linsys_solver_L, linsys_solver_Dinv, linsys_solver_P, linsys_solver_bp, linsys_solver_Pdiag_idx, ', ...
             num2str(linsys_solver.Pdiag_n), ', &linsys_solver_KKT, linsys_solver_PtoKKT, linsys_solver_AtoKKT, linsys_solver_rhotoKKT, ', ...
-            'linsys_solver_Lnz, linsys_solver_Y, linsys_solver_Pattern, linsys_solver_Flag, linsys_solver_Parent};\n\n']);
+            'linsys_solver_D, linsys_solver_etree, linsys_solver_Lnz, linsys_solver_iwork, linsys_solver_bwork, linsys_solver_fwork};\n\n']);
 else
     fprintf(f, '&linsys_solver_L, linsys_solver_Dinv, linsys_solver_P, linsys_solver_bp};\n\n');
 end
