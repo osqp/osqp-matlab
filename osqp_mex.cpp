@@ -908,7 +908,7 @@ mxArray* copyLinsysSolverToMxStruct(OSQPWorkspace * work){
   mxArray* D         = mxCreateDoubleMatrix(n,1,mxREAL);
   mxArray* etree     = mxCreateDoubleMatrix(n,1,mxREAL);
   mxArray* Lnz       = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* iwork     = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* iwork     = mxCreateDoubleMatrix(3*n,1,mxREAL);
   mxArray* bwork     = mxCreateDoubleMatrix(n,1,mxREAL);
   mxArray* fwork     = mxCreateDoubleMatrix(n,1,mxREAL);
 
