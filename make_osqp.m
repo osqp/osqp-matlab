@@ -186,7 +186,7 @@ if( any(strcmpi(what,'osqp_mex')) || any(strcmpi(what,'all')) )
 
     % Compile command
     %cmd = sprintf('%s %s %s %s osqp_mex.cpp', mex_cmd, mexoptflags, inc_dir, lib_name);
-    cmd = sprintf('%s -v %s %s %s osqp_mex.cpp %s', ...
+    cmd = sprintf('%s %s %s %s osqp_mex.cpp %s', ...
         mex_cmd, mexoptflags, inc_dir, lib_name, mex_libs);
 
     % Compile

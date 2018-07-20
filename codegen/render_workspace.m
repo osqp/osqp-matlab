@@ -6,8 +6,8 @@ f = fopen(output, 'w');
 % Include types, constants and private header
 fprintf(f, '#include \"types.h\"\n');
 fprintf(f, '#include \"constants.h\"\n');
-fprintf(f, '#include \"qdldl_types.h\"\n');
 fprintf(f, '#include \"qdldl.h\"\n\n');
+fprintf(f, '#include \"qdldl_interface.h\"\n');
 
 % Write data structure
 write_data(f, work.data);
