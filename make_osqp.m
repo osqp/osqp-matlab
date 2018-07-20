@@ -185,7 +185,7 @@ if( any(strcmpi(what,'osqp_mex')) || any(strcmpi(what,'all')) )
 
     % Compile command
     %cmd = sprintf('%s %s %s %s osqp_mex.cpp', mex_cmd, mexoptflags, inc_dir, lib_name);
-    cmd = sprintf('%s %s %s %s osqp_mex.cpp %s', ...
+    cmd = sprintf('%s -v %s %s %s osqp_mex.cpp %s', ...
         mex_cmd, mexoptflags, inc_dir, lib_name, mex_libs);
 
     % Compile
@@ -228,7 +228,7 @@ if( any(strcmpi(what,'codegen')) || any(strcmpi(what,'all')) )
     for j = 1:length(hdirs)
         hfiles = dir(fullfile(hdirs{j},'*.h'));
         for i = 1 : length(hfiles)
-            if ~any(strcmp(hfiles(i).name, {'osqp_configure.h','cs.h', 'ctrlc.h', 'lin_sys.h', 'polish.h', 'qdldl_configure'}))
+            if ~any(strcmp(hfiles(i).name, {'osqp_configure.h','cs.h', 'ctrlc.h', 'lin_sys.h', 'polish.h', 'qdldl.h'}))
                 copyfile(fullfile(hdirs{j}, hfiles(i).name), ...
                     fullfile(cg_include_dir, hfiles(i).name));
             end
