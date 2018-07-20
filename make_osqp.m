@@ -140,9 +140,9 @@ if( any(strcmpi(what,'osqp')) || any(strcmpi(what,'all')) )
     mkdir(osqp_build_dir);
     cd(osqp_build_dir);
 
-    % Extend path for CMAKE mac (via Homebrew)
+    % Extend path for CMake mac (via Homebrew)
     PATH = getenv('PATH');
-    if ((ismac) && (isempty(strfind(PATH, '/usr/local/bin'))))
+    if ((ismac) && (~contains(PATH, '/usr/local/bin')))
         setenv('PATH', [PATH ':/usr/local/bin']);
     end
 
@@ -229,7 +229,8 @@ if( any(strcmpi(what,'codegen')) || any(strcmpi(what,'all')) )
     for j = 1:length(hdirs)
         hfiles = dir(fullfile(hdirs{j},'*.h'));
         for i = 1 : length(hfiles)
-            if ~any(strcmp(hfiles(i).name, {'osqp_configure.h','cs.h', 'ctrlc.h', 'lin_sys.h', 'polish.h'}))
+            if ~any(strcmp(hfiles(i).name, {'qdldl_types.h', 'osqp_configure.h', ...
+                    'cs.h', 'ctrlc.h', 'lin_sys.h', 'polish.h'}))
                 copyfile(fullfile(hdirs{j}, hfiles(i).name), ...
                     fullfile(cg_include_dir, hfiles(i).name));
             end
@@ -241,7 +242,8 @@ if( any(strcmpi(what,'codegen')) || any(strcmpi(what,'all')) )
     if ~exist(cg_configure_dir, 'dir')
         mkdir(cg_configure_dir);
     end
-    configure_dirs  = {fullfile(osqp_dir, 'configure')};
+    configure_dirs  = {fullfile(osqp_dir, 'configure'),...
+                       fullfile(qdldl_dir, 'qdldl_sources', 'configure')};
     for j = 1:length(configure_dirs)
         configure_files = dir(fullfile(configure_dirs{j},'*.h.in'));
         for i = 1 : length(configure_files)

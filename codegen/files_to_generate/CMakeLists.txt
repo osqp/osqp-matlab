@@ -66,6 +66,23 @@ if (NOT (CMAKE_SIZEOF_VOID_P EQUAL 8))
 endif()
 message(STATUS "Long integers (64bit) are ${DLONG}")
 
+# Types for QDLDL
+# ----------------------------------------------
+if(DFLOAT)
+  set(QDLDL_FLOAT_TYPE "float")
+else()
+	set(QDLDL_FLOAT_TYPE "double")
+endif()
+
+if(DLONG)
+  set(QDLDL_INT_TYPE "long long")
+else()
+	set(QDLDL_INT_TYPE "int")
+endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/configure/qdldl_types.h.in
+               ${CMAKE_CURRENT_SOURCE_DIR}/include/qdldl_types.h
+               NEWLINE_STYLE LF)
 
 # Set Compiler flags
 # ----------------------------------------------
