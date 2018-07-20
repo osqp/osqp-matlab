@@ -6,7 +6,7 @@
 #include "qdldl_interface.h"   // To extract workspace for codegen
 
 // all of the OSQP_INFO fieldnames as strings
-const char* OSQP_INFO_FIELDS[] = {"iter",         //c_int
+const char* OSQP_INFO_FIELDS[] = {"iter",           //c_int
                                   "status" ,        //char*
                                   "status_val" ,    //c_int
                                   "status_polish",  //c_int
@@ -36,12 +36,12 @@ const char* OSQP_SETTINGS_FIELDS[] = {"rho",                        //c_float
                                       "linsys_solver",              //c_int
                                       "delta",                      //c_float
                                       "polish",                     //c_int
-                                      "polish_refine_iter",            //c_int
+                                      "polish_refine_iter",         //c_int
                                       "verbose",                    //c_int
                                       "scaled_termination",         //c_int
                                       "check_termination",          //c_int
                                       "warm_start",                 //c_int
-                                      "time_limit"};               //c_float
+                                      "time_limit"};                //c_float
 
 const char* CSC_FIELDS[] = {"nzmax",    //c_int
                             "m",        //c_int
@@ -923,7 +923,7 @@ mxArray* copyLinsysSolverToMxStruct(OSQPWorkspace * work){
   castToDoubleArr(linsys_solver->D, mxGetPr(D), n);
   castCintToDoubleArr(linsys_solver->etree, mxGetPr(etree), n);
   castCintToDoubleArr(linsys_solver->Lnz, mxGetPr(Lnz), n);
-  castCintToDoubleArr(linsys_solver->iwork, mxGetPr(iwork), n);
+  castCintToDoubleArr(linsys_solver->iwork, mxGetPr(iwork), 3*n);
   castCintToDoubleArr(linsys_solver->bwork, mxGetPr(bwork), n);
   castToDoubleArr(linsys_solver->fwork, mxGetPr(fwork), n);
 
@@ -1117,7 +1117,7 @@ void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OsqpData* osqpData){
 
 
   // Check for settings that need special update
-  // Update them only if they ae different than already set values
+  // Update them only if they are different than already set values
   c_float rho_new = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
   // Check if it has changed
   if (c_absval(rho_new - osqpData->work->settings->rho) > NEW_SETTINGS_TOL){

@@ -120,12 +120,13 @@ current_dir = pwd;
 osqp_dir = fullfile(makefile_path, 'osqp_sources');
 osqp_build_dir = fullfile(osqp_dir, 'build');
 qdldl_dir = fullfile(osqp_dir, 'lin_sys', 'direct', 'qdldl');
-cg_sources_dir = fullfile('.','codegen', 'sources');
+cg_sources_dir = fullfile('.', 'codegen', 'sources');
 
 % Include directory
 inc_dir = [
     fullfile(sprintf(' -I%s', osqp_dir), 'include'), ...
-    sprintf(' -I%s', qdldl_dir)];
+    sprintf(' -I%s', qdldl_dir), ...
+    fullfile(sprintf(' -I%s', qdldl_dir), 'qdldl_sources', 'include')];
 
 
 %% OSQP Solver
@@ -228,7 +229,7 @@ if( any(strcmpi(what,'codegen')) || any(strcmpi(what,'all')) )
     for j = 1:length(hdirs)
         hfiles = dir(fullfile(hdirs{j},'*.h'));
         for i = 1 : length(hfiles)
-            if ~any(strcmp(hfiles(i).name, {'osqp_configure.h','cs.h', 'ctrlc.h', 'lin_sys.h', 'polish.h', 'qdldl_configure'}))
+            if ~any(strcmp(hfiles(i).name, {'osqp_configure.h','cs.h', 'ctrlc.h', 'lin_sys.h', 'polish.h'}))
                 copyfile(fullfile(hdirs{j}, hfiles(i).name), ...
                     fullfile(cg_include_dir, hfiles(i).name));
             end
