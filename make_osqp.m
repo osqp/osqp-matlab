@@ -111,7 +111,7 @@ end
 
 % Set library extension
 lib_ext = '.a';
-lib_name = sprintf('libosqpstatic%s', lib_ext);
+lib_name = sprintf('libosqp%s', lib_ext);
 
 
 % Set osqp directory and osqp_build directory
@@ -119,13 +119,14 @@ current_dir = pwd;
 [makefile_path,~,~] = fileparts(which('make_osqp.m'));
 osqp_dir = fullfile(makefile_path, 'osqp_sources');
 osqp_build_dir = fullfile(osqp_dir, 'build');
-suitesparse_dir = fullfile(osqp_dir, 'lin_sys', 'direct', 'suitesparse');
-cg_sources_dir = fullfile('.','codegen', 'sources');
+qdldl_dir = fullfile(osqp_dir, 'lin_sys', 'direct', 'qdldl');
+cg_sources_dir = fullfile('.', 'codegen', 'sources');
 
 % Include directory
 inc_dir = [
     fullfile(sprintf(' -I%s', osqp_dir), 'include'), ...
-    sprintf(' -I%s', suitesparse_dir)];
+    sprintf(' -I%s', qdldl_dir), ...
+    fullfile(sprintf(' -I%s', qdldl_dir), 'qdldl_sources', 'include')];
 
 
 %% OSQP Solver
@@ -139,7 +140,7 @@ if( any(strcmpi(what,'osqp')) || any(strcmpi(what,'all')) )
     mkdir(osqp_build_dir);
     cd(osqp_build_dir);
 
-    % Extend path for CMAKE mac (via Homebrew)
+    % Extend path for CMake mac (via Homebrew)
     PATH = getenv('PATH');
     if ((ismac) && (isempty(strfind(PATH, '/usr/local/bin'))))
         setenv('PATH', [PATH ':/usr/local/bin']);
@@ -205,12 +206,12 @@ if( any(strcmpi(what,'codegen')) || any(strcmpi(what,'all')) )
         mkdir(cg_src_dir);
     end
     cdirs  = {fullfile(osqp_dir, 'src'),...
-              fullfile(suitesparse_dir),...
-              fullfile(suitesparse_dir, 'ldl', 'src')};
+              fullfile(qdldl_dir),...
+              fullfile(qdldl_dir, 'qdldl_sources', 'src')};
     for j = 1:length(cdirs)
         cfiles = dir(fullfile(cdirs{j},'*.c'));
         for i = 1 : length(cfiles)
-            if ~any(strcmp(cfiles(i).name, {'cs.c', 'ctrlc.c', 'lin_sys.c', 'polish.c', 'SuiteSparse_config.c'}))
+            if ~any(strcmp(cfiles(i).name, {'cs.c', 'ctrlc.c', 'lin_sys.c', 'polish.c'}))
                 copyfile(fullfile(cdirs{j}, cfiles(i).name), ...
                     fullfile(cg_src_dir, cfiles(i).name));
             end
@@ -223,12 +224,13 @@ if( any(strcmpi(what,'codegen')) || any(strcmpi(what,'all')) )
         mkdir(cg_include_dir);
     end
     hdirs  = {fullfile(osqp_dir, 'include'),...
-              fullfile(suitesparse_dir),...
-              fullfile(suitesparse_dir, 'ldl', 'include')};
+              fullfile(qdldl_dir),...
+              fullfile(qdldl_dir, 'qdldl_sources', 'include')};
     for j = 1:length(hdirs)
         hfiles = dir(fullfile(hdirs{j},'*.h'));
         for i = 1 : length(hfiles)
-            if ~any(strcmp(hfiles(i).name, {'osqp_configure.h','cs.h', 'ctrlc.h', 'lin_sys.h', 'polish.h', 'SuiteSparse_config.h'}))
+            if ~any(strcmp(hfiles(i).name, {'qdldl_types.h', 'osqp_configure.h', ...
+                    'cs.h', 'ctrlc.h', 'lin_sys.h', 'polish.h'}))
                 copyfile(fullfile(hdirs{j}, hfiles(i).name), ...
                     fullfile(cg_include_dir, hfiles(i).name));
             end
@@ -240,7 +242,8 @@ if( any(strcmpi(what,'codegen')) || any(strcmpi(what,'all')) )
     if ~exist(cg_configure_dir, 'dir')
         mkdir(cg_configure_dir);
     end
-    configure_dirs  = {fullfile(osqp_dir, 'configure')};
+    configure_dirs  = {fullfile(osqp_dir, 'configure'),...
+                       fullfile(qdldl_dir, 'qdldl_sources', 'configure')};
     for j = 1:length(configure_dirs)
         configure_files = dir(fullfile(configure_dirs{j},'*.h.in'));
         for i = 1 : length(configure_files)

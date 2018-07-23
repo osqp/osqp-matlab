@@ -3,10 +3,10 @@
 #include "osqp_mex.hpp"
 #include "osqp.h"
 #include "ctrlc.h"             // Needed for interrupt
-#include "suitesparse_ldl.h"   // To extract workspace for codegen
+#include "qdldl_interface.h"   // To extract workspace for codegen
 
 // all of the OSQP_INFO fieldnames as strings
-const char* OSQP_INFO_FIELDS[] = {"iter",         //c_int
+const char* OSQP_INFO_FIELDS[] = {"iter",           //c_int
                                   "status" ,        //char*
                                   "status_val" ,    //c_int
                                   "status_polish",  //c_int
@@ -36,12 +36,12 @@ const char* OSQP_SETTINGS_FIELDS[] = {"rho",                        //c_float
                                       "linsys_solver",              //c_int
                                       "delta",                      //c_float
                                       "polish",                     //c_int
-                                      "polish_refine_iter",            //c_int
+                                      "polish_refine_iter",         //c_int
                                       "verbose",                    //c_int
                                       "scaled_termination",         //c_int
                                       "check_termination",          //c_int
                                       "warm_start",                 //c_int
-                                      "time_limit"};               //c_float
+                                      "time_limit"};                //c_float
 
 const char* CSC_FIELDS[] = {"nzmax",    //c_int
                             "m",        //c_int
@@ -69,11 +69,12 @@ const char* LINSYS_SOLVER_FIELDS[] = {"L",           //csc
                                       "PtoKKT",      //c_int*
                                       "AtoKKT",      //c_int*
                                       "rhotoKKT",    //c_int*
+                                      "D",           //c_float*
+                                      "etree",       //c_int*
                                       "Lnz",         //c_int*
-                                      "Y",           //c_float*
-                                      "Pattern",     //c_int*
-                                      "Flag",        //c_int*
-                                      "Parent"};     //c_int*
+                                      "iwork",       //c_int*
+                                      "bwork",       //c_int*
+                                      "fwork"};      //c_float*
 
 const char* OSQP_SCALING_FIELDS[] = {"c",       //c_float
                                      "D",       //c_float*
@@ -195,9 +196,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mexErrMsgTxt("Solver is uninitialized.  No data have been configured.");
       }
 
-      //throw an error if linear systems solver is different than suitesparse
-      if(osqpData->work->linsys_solver->type != SUITESPARSE_LDL_SOLVER){
-        mexErrMsgTxt("Solver setup was not performed using SuiteSparse LDL! Please perform setup with linsys_solver as SuiteSparse LDL.");
+      //throw an error if linear systems solver is different than qdldl
+      if(osqpData->work->linsys_solver->type != QDLDL_SOLVER){
+        mexErrMsgTxt("Solver setup was not performed using QDLDL! Please perform setup with linsys_solver as QDLDL.");
       }
 
       //return data
@@ -668,8 +669,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Linear system solvers
-        if (!strcmp("SUITESPARSE_LDL_SOLVER", constant)){
-            plhs[0] = mxCreateDoubleScalar(SUITESPARSE_LDL_SOLVER);
+        if (!strcmp("QDLDL_SOLVER", constant)){
+            plhs[0] = mxCreateDoubleScalar(QDLDL_SOLVER);
             return;
         }
 
@@ -882,20 +883,19 @@ mxArray* copyLinsysSolverToMxStruct(OSQPWorkspace * work){
   int nfields;
   mxArray* mxPtr;
   OSQPData * data;
-  suitesparse_ldl_solver * linsys_solver;
+  qdldl_solver * linsys_solver;
 
   nfields = sizeof(LINSYS_SOLVER_FIELDS) / sizeof(LINSYS_SOLVER_FIELDS[0]);
   mxPtr = mxCreateStructMatrix(1,1,nfields,LINSYS_SOLVER_FIELDS);
 
   data = work->data;
-  linsys_solver = (suitesparse_ldl_solver *) work->linsys_solver;
+  linsys_solver = (qdldl_solver *) work->linsys_solver;
 
   // Dimensions
   int n = linsys_solver->L->n;
   int Pdiag_n = linsys_solver->Pdiag_n;
   int nnzP = data->P->p[data->P->n];
   int nnzA = data->A->p[data->A->n];
-  int m_plus_n = data->m + data->n;
 
   // Create vectors
   mxArray* Dinv      = mxCreateDoubleMatrix(n,1,mxREAL);
@@ -905,11 +905,12 @@ mxArray* copyLinsysSolverToMxStruct(OSQPWorkspace * work){
   mxArray* PtoKKT    = mxCreateDoubleMatrix(nnzP,1,mxREAL);
   mxArray* AtoKKT    = mxCreateDoubleMatrix(nnzA,1,mxREAL);
   mxArray* rhotoKKT  = mxCreateDoubleMatrix(data->m,1,mxREAL);
-  mxArray* Lnz       = mxCreateDoubleMatrix(m_plus_n,1,mxREAL);
-  mxArray* Y         = mxCreateDoubleMatrix(m_plus_n,1,mxREAL);
-  mxArray* Pattern   = mxCreateDoubleMatrix(m_plus_n,1,mxREAL);
-  mxArray* Flag      = mxCreateDoubleMatrix(m_plus_n,1,mxREAL);
-  mxArray* Parent    = mxCreateDoubleMatrix(m_plus_n,1,mxREAL);
+  mxArray* D         = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* etree     = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* Lnz       = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* iwork     = mxCreateDoubleMatrix(3*n,1,mxREAL);
+  mxArray* bwork     = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* fwork     = mxCreateDoubleMatrix(n,1,mxREAL);
 
   // Populate vectors
   castToDoubleArr(linsys_solver->Dinv, mxGetPr(Dinv), n);
@@ -919,11 +920,12 @@ mxArray* copyLinsysSolverToMxStruct(OSQPWorkspace * work){
   castCintToDoubleArr(linsys_solver->PtoKKT, mxGetPr(PtoKKT), nnzP);
   castCintToDoubleArr(linsys_solver->AtoKKT, mxGetPr(AtoKKT), nnzA);
   castCintToDoubleArr(linsys_solver->rhotoKKT, mxGetPr(rhotoKKT), data->m);
-  castCintToDoubleArr(linsys_solver->Lnz, mxGetPr(Lnz), m_plus_n);
-  castToDoubleArr(linsys_solver->Y, mxGetPr(Y), m_plus_n);
-  castCintToDoubleArr(linsys_solver->Pattern, mxGetPr(Pattern), m_plus_n);
-  castCintToDoubleArr(linsys_solver->Flag, mxGetPr(Flag), m_plus_n);
-  castCintToDoubleArr(linsys_solver->Parent, mxGetPr(Parent), m_plus_n);
+  castToDoubleArr(linsys_solver->D, mxGetPr(D), n);
+  castCintToDoubleArr(linsys_solver->etree, mxGetPr(etree), n);
+  castCintToDoubleArr(linsys_solver->Lnz, mxGetPr(Lnz), n);
+  castCintToDoubleArr(linsys_solver->iwork, mxGetPr(iwork), 3*n);
+  castCintToDoubleArr(linsys_solver->bwork, mxGetPr(bwork), n);
+  castToDoubleArr(linsys_solver->fwork, mxGetPr(fwork), n);
 
   // Create matrices
   mxArray* L   = copyCscMatrixToMxStruct(linsys_solver->L);
@@ -935,16 +937,17 @@ mxArray* copyLinsysSolverToMxStruct(OSQPWorkspace * work){
   mxSetField(mxPtr, 0, "P",         P);
   mxSetField(mxPtr, 0, "bp",        bp);
   mxSetField(mxPtr, 0, "Pdiag_idx", Pdiag_idx);
-  mxSetField(mxPtr, 0, "Pdiag_n",   mxCreateDoubleScalar(linsys_solver->Pdiag_n));
+  mxSetField(mxPtr, 0, "Pdiag_n",   mxCreateDoubleScalar(Pdiag_n));
   mxSetField(mxPtr, 0, "KKT",       KKT);
   mxSetField(mxPtr, 0, "PtoKKT",    PtoKKT);
   mxSetField(mxPtr, 0, "AtoKKT",    AtoKKT);
   mxSetField(mxPtr, 0, "rhotoKKT",  rhotoKKT);
+  mxSetField(mxPtr, 0, "D",         D);
+  mxSetField(mxPtr, 0, "etree",     etree);
   mxSetField(mxPtr, 0, "Lnz",       Lnz);
-  mxSetField(mxPtr, 0, "Y",         Y);
-  mxSetField(mxPtr, 0, "Pattern",   Pattern);
-  mxSetField(mxPtr, 0, "Flag",      Flag);
-  mxSetField(mxPtr, 0, "Parent",	Parent);
+  mxSetField(mxPtr, 0, "iwork",     iwork);
+  mxSetField(mxPtr, 0, "bwork",     bwork);
+  mxSetField(mxPtr, 0, "fwork",     fwork);
 
   return mxPtr;
 }
@@ -1114,7 +1117,7 @@ void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OsqpData* osqpData){
 
 
   // Check for settings that need special update
-  // Update them only if they ae different than already set values
+  // Update them only if they are different than already set values
   c_float rho_new = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
   // Check if it has changed
   if (c_absval(rho_new - osqpData->work->settings->rho) > NEW_SETTINGS_TOL){
