@@ -924,7 +924,7 @@ mxArray* copyLinsysSolverToMxStruct(OSQPWorkspace * work){
   castCintToDoubleArr(linsys_solver->etree, mxGetPr(etree), n);
   castCintToDoubleArr(linsys_solver->Lnz, mxGetPr(Lnz), n);
   castCintToDoubleArr(linsys_solver->iwork, mxGetPr(iwork), 3*n);
-  castCintToDoubleArr(linsys_solver->bwork, mxGetPr(bwork), n);
+  castCintToDoubleArr((c_int *)linsys_solver->bwork, mxGetPr(bwork), n);
   castToDoubleArr(linsys_solver->fwork, mxGetPr(fwork), n);
 
   // Create matrices
