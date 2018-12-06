@@ -15,6 +15,7 @@ const char* OSQP_INFO_FIELDS[] = {"iter",           //c_int
                                   "dua_res",        //c_float
                                   "setup_time",     //c_float, only used if PROFILING
                                   "solve_time",     //c_float, only used if PROFILING
+                                  "update_time",    //c_float, only used if PROFILING
                                   "polish_time",    //c_float, only used if PROFILING
                                   "run_time",       //c_float, only used if PROFILING
                                   "rho_updates",    //c_int
@@ -767,6 +768,7 @@ mxArray* copyInfoToMxStruct(OSQPInfo* info){
   //if not profiling, these fields will be empty
   mxSetField(mxPtr, 0, "setup_time",  mxCreateDoubleScalar(info->setup_time));
   mxSetField(mxPtr, 0, "solve_time",  mxCreateDoubleScalar(info->solve_time));
+  mxSetField(mxPtr, 0, "update_time", mxCreateDoubleScalar(info->update_time));
   mxSetField(mxPtr, 0, "polish_time", mxCreateDoubleScalar(info->polish_time));
   mxSetField(mxPtr, 0, "run_time",    mxCreateDoubleScalar(info->run_time));
   #endif
