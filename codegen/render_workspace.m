@@ -142,9 +142,9 @@ if embedded_flag ~= 1
     write_vec(f, linsys_solver.D,         'linsys_solver_D',         'QDLDL_float');
     write_vec(f, linsys_solver.etree,     'linsys_solver_etree',     'QDLDL_int');
     write_vec(f, linsys_solver.Lnz,       'linsys_solver_Lnz',       'QDLDL_int');
-    write_vec(f, linsys_solver.iwork,     'linsys_solver_iwork',     'QDLDL_int');
-    write_vec(f, linsys_solver.bwork,     'linsys_solver_bwork',     'QDLDL_bool');
-    write_vec(f, linsys_solver.fwork,     'linsys_solver_fwork',     'QDLDL_float');
+    fprintf(f, 'QDLDL_int   linsys_solver_iwork[%d];\n', length(linsys_solver.iwork));
+    fprintf(f, 'QDLDL_bool  linsys_solver_bwork[%d];\n', length(linsys_solver.bwork));
+    fprintf(f, 'QDLDL_float linsys_solver_fwork[%d];\n', length(linsys_solver.fwork));
 end
 
 fprintf(f, 'qdldl_solver linsys_solver = ');
