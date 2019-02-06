@@ -135,16 +135,16 @@ fprintf(f, 'c_float linsys_solver_bp[%d];\n', length(linsys_solver.Dinv));  % Em
 
 if embedded_flag ~= 1
     write_vec(f, linsys_solver.Pdiag_idx, 'linsys_solver_Pdiag_idx', 'c_int');
-    write_mat(f, linsys_solver.KKT, 'linsys_solver_KKT');
-    write_vec(f, linsys_solver.PtoKKT, 'linsys_solver_PtoKKT', 'c_int');
-    write_vec(f, linsys_solver.AtoKKT, 'linsys_solver_AtoKKT', 'c_int');
-    write_vec(f, linsys_solver.rhotoKKT, 'linsys_solver_rhotoKKT', 'c_int');
-    write_vec(f, linsys_solver.D, 'linsys_solver_D', 'c_float');
-    write_vec(f, linsys_solver.etree, 'linsys_solver_etree', 'c_int');
-    write_vec(f, linsys_solver.Lnz, 'linsys_solver_Lnz', 'c_int');
-    write_vec(f, linsys_solver.iwork, 'linsys_solver_iwork', 'c_int');
-    write_vec(f, linsys_solver.bwork, 'linsys_solver_bwork', 'c_int');
-    write_vec(f, linsys_solver.fwork, 'linsys_solver_fwork', 'c_float');
+    write_mat(f, linsys_solver.KKT,       'linsys_solver_KKT');
+    write_vec(f, linsys_solver.PtoKKT,    'linsys_solver_PtoKKT',    'c_int');
+    write_vec(f, linsys_solver.AtoKKT,    'linsys_solver_AtoKKT',    'c_int');
+    write_vec(f, linsys_solver.rhotoKKT,  'linsys_solver_rhotoKKT',  'c_int');
+    write_vec(f, linsys_solver.D,         'linsys_solver_D',         'QDLDL_float');
+    write_vec(f, linsys_solver.etree,     'linsys_solver_etree',     'QDLDL_int');
+    write_vec(f, linsys_solver.Lnz,       'linsys_solver_Lnz',       'QDLDL_int');
+    write_vec(f, linsys_solver.iwork,     'linsys_solver_iwork',     'QDLDL_int');
+    write_vec(f, linsys_solver.bwork,     'linsys_solver_bwork',     'QDLDL_bool');
+    write_vec(f, linsys_solver.fwork,     'linsys_solver_fwork',     'QDLDL_float');
 end
 
 fprintf(f, 'qdldl_solver linsys_solver = ');
