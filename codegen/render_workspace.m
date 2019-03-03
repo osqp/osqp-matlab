@@ -86,12 +86,12 @@ fprintf(f, '(c_float)%.20f, ', settings.eps_rel);
 fprintf(f, '(c_float)%.20f, ', settings.eps_prim_inf);
 fprintf(f, '(c_float)%.20f, ', settings.eps_dual_inf);
 fprintf(f, '(c_float)%.20f, ', settings.alpha);
-fprintf(f, '%.20f, ', settings.linsys_solver);
+fprintf(f, '(enum linsys_solver_type) LINSYS_SOLVER, ');
 
 
 fprintf(f, '%d, ', settings.scaled_termination);
 fprintf(f, '%d, ', settings.check_termination);
-fprintf(f, '%d,',   settings.warm_start);
+fprintf(f, '%d, ', settings.warm_start);
 
 fprintf(f, '\n#ifdef PROFILING\n');
 fprintf(f, '(c_float)%.20f, ', settings.time_limit);
