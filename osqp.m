@@ -27,7 +27,7 @@ classdef osqp < handle
     properties (SetAccess = private, Hidden = true)
         objectHandle % Handle to underlying C instance
     end
-   methods(Static) 
+    methods(Static)
         %%
         function out = default_settings()
             % DEFAULT_SETTINGS get the default solver settings structure
@@ -364,6 +364,8 @@ classdef osqp < handle
             defaultParams = 'vectors';
             expectedParams = {'vectors', 'matrices'};
             defaultMexname = 'emosqp';
+            defaultFloat = false;
+            defaultLong = true;
             defaultFW = false;
 
             addRequired(p, 'target_dir', @isstr);
@@ -372,6 +374,8 @@ classdef osqp < handle
             addParameter(p, 'parameters', defaultParams, ...
                          @(x) any(validatestring(x, expectedParams)));
             addParameter(p, 'mexname', defaultMexname, @isstr);
+            addParameter(p, 'FLOAT', defaultFloat, @islogical);
+            addParameter(p, 'LONG', defaultLong, @islogical);
             addParameter(p, 'force_rewrite', defaultFW, @islogical);
 
             parse(p, target_dir, varargin{:});
@@ -381,6 +385,16 @@ classdef osqp < handle
                 embedded = 1;
             else
                 embedded = 2;
+            end
+            if p.Results.FLOAT
+                float_flag = 'ON';
+            else
+                float_flag = 'OFF';
+            end
+            if p.Results.LONG
+                long_flag = 'ON';
+            else
+                long_flag = 'OFF';
             end
             if strcmp(p.Results.project_type, 'Makefile')
                 if (ispc)
@@ -516,7 +530,7 @@ classdef osqp < handle
 
             % Make mex interface to the generated code
             mex_cfile  = fullfile(files_to_generate_path, 'emosqp_mex.c');
-            make_emosqp(target_dir, mex_cfile, embedded);
+            make_emosqp(target_dir, mex_cfile, embedded, float_flag, long_flag);
 
             % Rename the mex file
             old_mexfile = ['emosqp_mex.', mexext];
@@ -619,19 +633,19 @@ end
 
 
 function [linsys_solver] = string_to_linsys_solver(linsys_solver_string)
-   linsys_solver_string = lower(linsys_solver_string);
-   switch linsys_solver_string
-       case 'qdldl'
-           linsys_solver = osqp.constant('QDLDL_SOLVER');
-       case 'mkl pardiso'
-           linsys_solver = osqp.constant('MKL_PARDISO_SOLVER');
-       % Default solver: QDLDL
-       case ''
-           linsys_solver = osqp.constant('QDLDL_SOLVER');
-       otherwise
-           warning('Linear system solver not recognized. Using default solver QDLDL.')
-           linsys_solver = osqp.constant('QDLDL_SOLVER');
-   end
+linsys_solver_string = lower(linsys_solver_string);
+switch linsys_solver_string
+    case 'qdldl'
+        linsys_solver = osqp.constant('QDLDL_SOLVER');
+    case 'mkl pardiso'
+        linsys_solver = osqp.constant('MKL_PARDISO_SOLVER');
+    % Default solver: QDLDL
+    case ''
+        linsys_solver = osqp.constant('QDLDL_SOLVER');
+    otherwise
+        warning('Linear system solver not recognized. Using default solver QDLDL.')
+        linsys_solver = osqp.constant('QDLDL_SOLVER');
+end
 end
 
 

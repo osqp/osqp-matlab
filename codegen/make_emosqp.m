@@ -1,4 +1,4 @@
-function make_emosqp(target_dir, mex_cfile, EMBEDDED_FLAG)
+function make_emosqp(target_dir, mex_cfile, EMBEDDED_FLAG, FLOAT_FLAG, LONG_FLAG)
 % Matlab MEX makefile for code generated solver.
 
 
@@ -10,6 +10,12 @@ mexoptflags = '-DMATLAB';
 
 % Add embedded flag
 cmake_args = sprintf('-DEMBEDDED:INT=%i', EMBEDDED_FLAG);
+
+% Add float flag
+cmake_args = sprintf('%s -DDFLOAT:BOOL=%s', cmake_args, FLOAT_FLAG);
+
+% Add long flag
+cmake_args = sprintf('%s -DDLONG:BOOL=%s', cmake_args, LONG_FLAG);
 
 
 % Generate osqp_configure.h file by running cmake
@@ -48,8 +54,8 @@ inc_dir = fullfile(sprintf(' -I%s', target_dir), 'include');
 cfiles = '';
 src_files = dir(fullfile(target_dir, 'src', 'osqp', '*c'));
 for i = 1 : length(src_files)
-   cfiles = sprintf('%s %s', cfiles, ...
-       fullfile(target_dir, 'src', 'osqp', src_files(i).name));
+    cfiles = sprintf('%s %s', cfiles, ...
+        fullfile(target_dir, 'src', 'osqp', src_files(i).name));
 end
 
 % Compile interface
