@@ -6,14 +6,22 @@ function osqp_block_init(parentBlock)
     warmstart_style             = get_param(parentBlock,'warmstart_style');
     has_external_q_input        = get_param(parentBlock,'has_external_q_input');
     has_external_bound_input    = get_param(parentBlock,'has_external_bound_input');
+    
+       
+    %I want the ports to always appear in the same order
+    %on the block if the same dialog values are selected.
+    %this only seems possible if I manually track the
+    %and assign the port numbers 
+    portcount = 0;   %no ports assigned yet
 
 
     %------------------------------------------------------
     %Handle the configurable input ports that use pulldowns
     %------------------------------------------------------
 
-    thePortnames         = {'refactor_ext','warmstart_ext'};
-    thePulldownValues    = {refactor_style, warmstart_style};
+    thePortnames         = {'warmstart_ext','refactor_ext'};
+    thePulldownValues    = {warmstart_style, refactor_style};
+ 
 
     for i = 1:length(thePortnames)
 
@@ -26,10 +34,10 @@ function osqp_block_init(parentBlock)
         switch pdVal
 
             case {'Never','Always'}
-                osqp_replace_block(parentBlock,portname,'Constant')
+                portcount = osqp_replace_block(parentBlock,portname,'Constant',portcount);
 
             case {'Triggered'}        %From external signal
-                osqp_replace_block(parentBlock,portname,'Inport')
+                portcount = osqp_replace_block(parentBlock,portname,'Inport',portcount);
 
             otherwise
                 error('Unrecognized pulldown value');
@@ -71,10 +79,10 @@ function osqp_block_init(parentBlock)
         switch refactor_style
 
             case {'Always','Triggered'}
-                osqp_replace_block(parentBlock,portname,'Inport')
+                portcount = osqp_replace_block(parentBlock,portname,'Inport',portcount);
 
             case 'Never'
-                osqp_replace_block(parentBlock,portname,'Constant')
+                portcount = osqp_replace_block(parentBlock,portname,'Constant',portcount);
                 set_param([parentBlock, '/' portname],'Value','NaN')
 
             otherwise
@@ -107,11 +115,11 @@ function osqp_block_init(parentBlock)
             switch tickVal
 
                 case 'off'   %unticked
-                    osqp_replace_block(parentBlock,portname,'Constant')
+                    portcount = osqp_replace_block(parentBlock,portname,'Constant',portcount);
                     set_param([parentBlock, '/' portname],'Value','NaN')
 
                 case 'on'   %ticked
-                    osqp_replace_block(parentBlock,portname,'Inport')
+                    portcount = osqp_replace_block(parentBlock,portname,'Inport',portcount);
 
                 otherwise
                     error('Unrecognized dialog value');
@@ -131,7 +139,7 @@ end %end function
 
 
 
-function osqp_replace_block(parentBlock,portname,newtype)
+function portcount = osqp_replace_block(parentBlock,portname,newtype,portcount)
 
     %replace the named block with one of the specified type, but
     %only do this if the new type is different from the current one
@@ -139,11 +147,21 @@ function osqp_replace_block(parentBlock,portname,newtype)
     %this is necessary since replacing an input port block with
     %the same type has the effect of disconnecting the port
     
-    oldtype = get_param([parentBlock, '/' portname],'BlockType');
+    blockname = [parentBlock, '/' portname];
+    
+    oldtype = get_param(blockname,'BlockType');
 
     if(~strcmp(oldtype,newtype))
-        replace_block(parentBlock,'Name',portname,newtype,'noprompt');
+        replace_block(blockname,'Name',portname,newtype,'noprompt');
     end
-
+    
+    %if this is an Inport, assign it the next port number and increment
+    if(strcmp(newtype,'Inport'))
+        portcount = portcount + 1;
+        set_param(blockname,'Port',num2str(portcount));
+    end
+        
+    
+   
 
 end %end function
