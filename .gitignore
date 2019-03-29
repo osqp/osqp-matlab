@@ -93,6 +93,8 @@ TAGS
 *.mexa64*
 out/
 *.asv
+*.slxc
+simulink/slprj/
 
 # Other data files
 # *.mat

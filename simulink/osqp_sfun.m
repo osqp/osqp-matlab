@@ -15,11 +15,11 @@ function setup(block)
   block.NumInputPorts  = 9;  %refactor,warmstart,Px,Px_idx,Ax,Ax_idx,q,l,u
   block.NumOutputPorts = 17; %x,y,prim_inf_cert,dual_inf_cert, various info values
   
-  outputPortSize = [n,m,n,m,ones(1,14)];
+  %outputPortSize = [n,m,n,m,ones(1,14)];
   
   % Register the parameters.
   block.NumDialogPrms     = 9; %m,n,P,A,q,l,u, emptysolver, options
-  block.DialogPrmsTunable = repmat({'Tunable'},[1 block.NumDialogPrms])
+  block.DialogPrmsTunable = repmat({'Tunable'},[1 block.NumDialogPrms]);
 
   %% Setup functional port properties to dynamically
   %% inherited.
@@ -78,8 +78,8 @@ function DoPostPropSetup(block)
   %since there is seemingly no place to stash it in the 
   %internal memory of the block.   In C it would be possible
   %to store it in pwork, but there's no .m s function analogy
-  m       = block.DialogPrm(1).Data;
-  n       = block.DialogPrm(2).Data;
+%   m       = block.DialogPrm(1).Data;
+%   n       = block.DialogPrm(2).Data;
   P       = block.DialogPrm(3).Data;
   A       = block.DialogPrm(4).Data;
   q       = block.DialogPrm(5).Data;
@@ -131,9 +131,9 @@ function Output(block)
   end
   
   %add updates to q/l/u if they are not NaN valued
-  if(~any(isnan(q))), updates = [updates,{'q',q}];, end
-  if(~any(isnan(l))), updates = [updates,{'l',l}];, end
-  if(~any(isnan(u))), updates = [updates,{'u',u}];, end
+  if(~any(isnan(q))), updates = [updates,{'q',q}]; end
+  if(~any(isnan(l))), updates = [updates,{'l',l}]; end
+  if(~any(isnan(u))), updates = [updates,{'u',u}]; end
  
   if(length(updates) > 0)
       solver.update(updates{:})
