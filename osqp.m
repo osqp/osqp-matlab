@@ -465,7 +465,7 @@ classdef osqp < handle
             for i = 1 : length(cfiles)
                 if embedded == 1
                     % Do not copy kkt.c if embedded is 1
-                    if ~strcmp(cfiles(i).name, fullfile(cdir, 'kkt.c'))
+                    if ~strcmp(cfiles(i).name, 'kkt.c')
                         copyfile(fullfile(cdir, cfiles(i).name), ...
                             fullfile(target_src_dir, 'osqp', cfiles(i).name));    
                     end
@@ -483,8 +483,16 @@ classdef osqp < handle
             hdir   = fullfile(cg_dir, 'sources', 'include');
             hfiles = dir(fullfile(hdir, '*.h'));
             for i = 1 : length(hfiles)
-                copyfile(fullfile(hdir, hfiles(i).name), ...
-                    fullfile(target_include_dir, hfiles(i).name));
+                if embedded == 1
+                    % Do not copy kkt.h if embedded is 1
+                    if ~strcmp(hfiles(i).name, 'kkt.h')
+                        copyfile(fullfile(hdir, hfiles(i).name), ...
+                            fullfile(target_include_dir, hfiles(i).name));  
+                    end
+                else
+                    copyfile(fullfile(hdir, hfiles(i).name), ...
+                        fullfile(target_include_dir, hfiles(i).name));
+                end
             end
             fprintf('[done]\n');
 
