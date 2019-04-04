@@ -370,9 +370,9 @@ classdef osqp < handle
 
             addRequired(p, 'target_dir', @isstr);
             addParameter(p, 'project_type', defaultProject, ...
-                         @(x) any(validatestring(x, expectedProject)));
+                         @(x) ischar(validatestring(x, expectedProject)));
             addParameter(p, 'parameters', defaultParams, ...
-                         @(x) any(validatestring(x, expectedParams)));
+                         @(x) ischar(validatestring(x, expectedParams)));
             addParameter(p, 'mexname', defaultMexname, @isstr);
             addParameter(p, 'FLOAT', defaultFloat, @islogical);
             addParameter(p, 'LONG', defaultLong, @islogical);
