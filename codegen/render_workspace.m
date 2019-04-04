@@ -5,7 +5,6 @@ f = fopen(output, 'w');
 
 % Include types, constants and private header
 fprintf(f, '#include \"types.h\"\n');
-fprintf(f, '#include \"constants.h\"\n');
 fprintf(f, '#include \"qdldl.h\"\n\n');
 fprintf(f, '#include \"qdldl_interface.h\"\n');
 
@@ -75,9 +74,6 @@ if embedded_flag ~= 1
     fprintf(f, '%d, ', settings.adaptive_rho);
     fprintf(f, '%d, ', settings.adaptive_rho_interval);
     fprintf(f, '(c_float)%.20f,', settings.adaptive_rho_tolerance);
-    fprintf(f, '\n#ifdef PROFILING\n');
-    fprintf(f, '(c_float)%.20f, ', settings.adaptive_rho_fraction);
-    fprintf(f, '\n#endif  // PROFILING\n');
 end
 
 fprintf(f, '%d, ',             settings.max_iter);
@@ -92,10 +88,6 @@ fprintf(f, '(enum linsys_solver_type) LINSYS_SOLVER, ');
 fprintf(f, '%d, ', settings.scaled_termination);
 fprintf(f, '%d, ', settings.check_termination);
 fprintf(f, '%d, ', settings.warm_start);
-
-fprintf(f, '\n#ifdef PROFILING\n');
-fprintf(f, '(c_float)%.20f, ', settings.time_limit);
-fprintf(f, '\n#endif  // PROFILING\n');
 
 fprintf(f, '};\n\n');
 
