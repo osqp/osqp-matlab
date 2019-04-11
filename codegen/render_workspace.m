@@ -29,11 +29,9 @@ fprintf(srcFile, ' */\n\n');
 
 % Include types, constants and private header
 fprintf(incFile, '#include \"types.h\"\n');
-fprintf(incFile, '#include \"qdldl.h\"\n');
 fprintf(incFile, '#include \"qdldl_interface.h\"\n\n');
 
 fprintf(srcFile, '#include \"types.h\"\n');
-fprintf(srcFile, '#include \"qdldl.h\"\n');
 fprintf(srcFile, '#include \"qdldl_interface.h\"\n\n');
 
 % Write data structure
