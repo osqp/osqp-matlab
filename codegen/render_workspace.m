@@ -3,6 +3,12 @@ function render_workspace( work, output, embedded_flag )
 
 f = fopen(output, 'w');
 
+% Add an include-guard statement
+[~, fname, ~] = fileparts(output);
+incGuard = [upper(fname), '_H'];
+fprintf(f, '#ifndef %s\n', incGuard);
+fprintf(f, '#define %s\n\n', incGuard);
+
 % Include types, constants and private header
 fprintf(f, '#include \"types.h\"\n');
 fprintf(f, '#include \"qdldl.h\"\n\n');
@@ -28,6 +34,9 @@ write_info(f);
 
 % Define workspace structure
 write_workspace(f, work.data.n, work.data.m, work.rho_vectors, embedded_flag);
+
+% The endif for the include-guard
+fprintf(f, '#endif // ifndef %s\n', incGuard);
 
 fclose(f);
 
