@@ -511,10 +511,11 @@ classdef osqp < handle
             fclose(fidi);
             fclose(fido);
 
-            % Render workspace.h
+            % Render workspace.h and workspace.c
             work_hfile = fullfile(target_include_dir, 'workspace.h');
-            fprintf('Generating workspace.h...\t\t\t\t\t\t');
-            render_workspace(work, work_hfile, embedded);
+            work_cfile = fullfile(target_src_dir, 'osqp', 'workspace.c');
+            fprintf('Generating workspace.h/.c...\t\t\t\t\t\t');
+            render_workspace(work, work_hfile, work_cfile, embedded);
             fprintf('[done]\n');
 
             % Create project
