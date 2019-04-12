@@ -370,9 +370,9 @@ classdef osqp < handle
 
             addRequired(p, 'target_dir', @isstr);
             addParameter(p, 'project_type', defaultProject, ...
-                         @(x) any(validatestring(x, expectedProject)));
+                         @(x) ischar(validatestring(x, expectedProject)));
             addParameter(p, 'parameters', defaultParams, ...
-                         @(x) any(validatestring(x, expectedParams)));
+                         @(x) ischar(validatestring(x, expectedParams)));
             addParameter(p, 'mexname', defaultMexname, @isstr);
             addParameter(p, 'FLOAT', defaultFloat, @islogical);
             addParameter(p, 'LONG', defaultLong, @islogical);
@@ -511,10 +511,11 @@ classdef osqp < handle
             fclose(fidi);
             fclose(fido);
 
-            % Render workspace.h
+            % Render workspace.h and workspace.c
             work_hfile = fullfile(target_include_dir, 'workspace.h');
-            fprintf('Generating workspace.h...\t\t\t\t\t\t');
-            render_workspace(work, work_hfile, embedded);
+            work_cfile = fullfile(target_src_dir, 'osqp', 'workspace.c');
+            fprintf('Generating workspace.h/.c...\t\t\t\t\t\t');
+            render_workspace(work, work_hfile, work_cfile, embedded);
             fprintf('[done]\n');
 
             % Create project
