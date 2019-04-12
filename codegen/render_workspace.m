@@ -423,10 +423,6 @@ end
 function write_mat_extern(f, mat, name)
 %WRITE_MAT_EXTERN Write matrix the prototype for the matrix.
 
-write_vec_extern(f, mat.i, [name, '_i'], 'c_int');
-write_vec_extern(f, mat.p, [name, '_p'], 'c_int');
-write_vec_extern(f, mat.x, [name, '_x'], 'c_float');
-
 fprintf(f, 'extern csc %s;\n', name);
 
 end
