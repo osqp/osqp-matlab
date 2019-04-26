@@ -33,7 +33,7 @@ classdef codegen_mat_tests < matlab.unittest.TestCase
             
             % Generate code (supress command window output)
             clear mex
-            cmd = ['testCase.solver.codegen(''code'', ''mexname'', ''emosqp'',', ...
+            cmd = ['testCase.solver.codegen(''./code'', ''mexname'', ''emosqp'',', ...
                   ' ''parameters'', ''matrices'', ''force_rewrite'', true);'];
             evalc(cmd);
 
