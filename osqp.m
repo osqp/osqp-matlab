@@ -214,7 +214,10 @@ classdef osqp < handle
             if (isempty(P))
                 P = sparse(n, n);
             else
-                P   = sparse(P);
+                P = sparse(P);
+            end
+            if (~istriu(P))
+                P = triu(P);
             end
             if (isempty(q))
                 q = zeros(n, 1);
