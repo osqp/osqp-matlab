@@ -203,20 +203,22 @@ function write_linsys_solver_src( f, linsys_solver, embedded_flag )
 %WRITE_LINSYS_SOLVER_SRC Write linsys_solver structure to file.
 
 fprintf(f, '// Define linsys_solver structure\n');
-write_mat(f, linsys_solver.L, 'linsys_solver_L')
-write_vec(f, linsys_solver.Dinv, 'linsys_solver_Dinv', 'c_float')
-write_vec(f, linsys_solver.P, 'linsys_solver_P', 'c_int')
-fprintf(f, 'c_float linsys_solver_bp[%d];\n', length(linsys_solver.Dinv));  % Empty rhs
+write_mat(f, linsys_solver.L,             'linsys_solver_L')
+write_vec(f, linsys_solver.Dinv,          'linsys_solver_Dinv',        'c_float')
+write_vec(f, linsys_solver.P,             'linsys_solver_P',           'c_int')
+fprintf(f, 'c_float linsys_solver_bp[%d];\n',  length(linsys_solver.bp));
+fprintf(f, 'c_float linsys_solver_sol[%d];\n', length(linsys_solver.sol));
+write_vec(f, linsys_solver.rho_inv_vec,   'linsys_solver_rho_inv_vec', 'c_float')
 
 if embedded_flag ~= 1
-    write_vec(f, linsys_solver.Pdiag_idx, 'linsys_solver_Pdiag_idx', 'c_int');
+    write_vec(f, linsys_solver.Pdiag_idx, 'linsys_solver_Pdiag_idx',    'c_int');
     write_mat(f, linsys_solver.KKT,       'linsys_solver_KKT');
-    write_vec(f, linsys_solver.PtoKKT,    'linsys_solver_PtoKKT',    'c_int');
-    write_vec(f, linsys_solver.AtoKKT,    'linsys_solver_AtoKKT',    'c_int');
-    write_vec(f, linsys_solver.rhotoKKT,  'linsys_solver_rhotoKKT',  'c_int');
-    write_vec(f, linsys_solver.D,         'linsys_solver_D',         'QDLDL_float');
-    write_vec(f, linsys_solver.etree,     'linsys_solver_etree',     'QDLDL_int');
-    write_vec(f, linsys_solver.Lnz,       'linsys_solver_Lnz',       'QDLDL_int');
+    write_vec(f, linsys_solver.PtoKKT,    'linsys_solver_PtoKKT',       'c_int');
+    write_vec(f, linsys_solver.AtoKKT,    'linsys_solver_AtoKKT',       'c_int');
+    write_vec(f, linsys_solver.rhotoKKT,  'linsys_solver_rhotoKKT',     'c_int');
+    write_vec(f, linsys_solver.D,         'linsys_solver_D',            'QDLDL_float');
+    write_vec(f, linsys_solver.etree,     'linsys_solver_etree',        'QDLDL_int');
+    write_vec(f, linsys_solver.Lnz,       'linsys_solver_Lnz',          'QDLDL_int');
     fprintf(f, 'QDLDL_int   linsys_solver_iwork[%d];\n', length(linsys_solver.iwork));
     fprintf(f, 'QDLDL_bool  linsys_solver_bwork[%d];\n', length(linsys_solver.bwork));
     fprintf(f, 'QDLDL_float linsys_solver_fwork[%d];\n', length(linsys_solver.fwork));
@@ -224,14 +226,24 @@ end
 
 fprintf(f, 'qdldl_solver linsys_solver = ');
 fprintf(f, '{QDLDL_SOLVER, &solve_linsys_qdldl, ');
+
 if embedded_flag ~= 1
-    fprintf(f, ['&update_linsys_solver_matrices_qdldl, &update_linsys_solver_rho_vec_qdldl, ', ...
-            '&linsys_solver_L, linsys_solver_Dinv, linsys_solver_P, linsys_solver_bp, linsys_solver_Pdiag_idx, ', ...
-            num2str(linsys_solver.Pdiag_n), ', &linsys_solver_KKT, linsys_solver_PtoKKT, linsys_solver_AtoKKT, linsys_solver_rhotoKKT, ', ...
-            'linsys_solver_D, linsys_solver_etree, linsys_solver_Lnz, linsys_solver_iwork, linsys_solver_bwork, linsys_solver_fwork};\n\n']);
-else
-    fprintf(f, '&linsys_solver_L, linsys_solver_Dinv, linsys_solver_P, linsys_solver_bp};\n\n');
+    fprintf(f, '&update_linsys_solver_matrices_qdldl, &update_linsys_solver_rho_vec_qdldl, ');
 end
+
+fprintf(f, '&linsys_solver_L, linsys_solver_Dinv, linsys_solver_P, linsys_solver_bp, linsys_solver_sol, linsys_solver_rho_inv_vec, ');
+fprintf(f, '(c_float)%.20f, ',  linsys_solver.sigma);
+fprintf(f, '%d, ',              linsys_solver.n);
+fprintf(f, '%d, ',              linsys_solver.m);
+
+if embedded_flag ~= 1
+    fprintf(f, 'linsys_solver_Pdiag_idx, ');
+    fprintf(f, '%d, ',              linsys_solver.Pdiag_n);
+    fprintf(f, ['&linsys_solver_KKT, linsys_solver_PtoKKT, linsys_solver_AtoKKT, linsys_solver_rhotoKKT, ', ...
+            'linsys_solver_D, linsys_solver_etree, linsys_solver_Lnz, linsys_solver_iwork, linsys_solver_bwork, linsys_solver_fwork, ']);
+end
+
+fprintf(f, '};\n\n');
 
 end
 
@@ -240,20 +252,22 @@ function write_linsys_solver_inc( f, linsys_solver, embedded_flag )
 %WRITE_LINSYS_SOLVER_INC Write prototypes for linsys_solver structure to file.
 
 fprintf(f, '// Prototypes for linsys_solver structure\n');
-write_mat_extern(f, linsys_solver.L, 'linsys_solver_L')
-write_vec_extern(f, linsys_solver.Dinv, 'linsys_solver_Dinv', 'c_float')
-write_vec_extern(f, linsys_solver.P, 'linsys_solver_P', 'c_int')
-fprintf(f, 'extern c_float linsys_solver_bp[%d];\n', length(linsys_solver.Dinv));  % Empty rhs
+write_mat_extern(f, linsys_solver.L,            'linsys_solver_L')
+write_vec_extern(f, linsys_solver.Dinv,         'linsys_solver_Dinv',        'c_float')
+write_vec_extern(f, linsys_solver.P,            'linsys_solver_P',           'c_int')
+fprintf(f, 'extern c_float linsys_solver_bp[%d];\n',  length(linsys_solver.bp));
+fprintf(f, 'extern c_float linsys_solver_sol[%d];\n', length(linsys_solver.sol));
+write_vec_extern(f, linsys_solver.rho_inv_vec,  'linsys_solver_rho_inv_vec', 'c_float')
 
 if embedded_flag ~= 1
-    write_vec_extern(f, linsys_solver.Pdiag_idx, 'linsys_solver_Pdiag_idx', 'c_int');
+    write_vec_extern(f, linsys_solver.Pdiag_idx, 'linsys_solver_Pdiag_idx',  'c_int');
     write_mat_extern(f, linsys_solver.KKT,       'linsys_solver_KKT');
-    write_vec_extern(f, linsys_solver.PtoKKT,    'linsys_solver_PtoKKT',    'c_int');
-    write_vec_extern(f, linsys_solver.AtoKKT,    'linsys_solver_AtoKKT',    'c_int');
-    write_vec_extern(f, linsys_solver.rhotoKKT,  'linsys_solver_rhotoKKT',  'c_int');
-    write_vec_extern(f, linsys_solver.D,         'linsys_solver_D',         'QDLDL_float');
-    write_vec_extern(f, linsys_solver.etree,     'linsys_solver_etree',     'QDLDL_int');
-    write_vec_extern(f, linsys_solver.Lnz,       'linsys_solver_Lnz',       'QDLDL_int');
+    write_vec_extern(f, linsys_solver.PtoKKT,    'linsys_solver_PtoKKT',     'c_int');
+    write_vec_extern(f, linsys_solver.AtoKKT,    'linsys_solver_AtoKKT',     'c_int');
+    write_vec_extern(f, linsys_solver.rhotoKKT,  'linsys_solver_rhotoKKT',   'c_int');
+    write_vec_extern(f, linsys_solver.D,         'linsys_solver_D',          'QDLDL_float');
+    write_vec_extern(f, linsys_solver.etree,     'linsys_solver_etree',      'QDLDL_int');
+    write_vec_extern(f, linsys_solver.Lnz,       'linsys_solver_Lnz',        'QDLDL_int');
     fprintf(f, 'extern QDLDL_int   linsys_solver_iwork[%d];\n', length(linsys_solver.iwork));
     fprintf(f, 'extern QDLDL_bool  linsys_solver_bwork[%d];\n', length(linsys_solver.bwork));
     fprintf(f, 'extern QDLDL_float linsys_solver_fwork[%d];\n', length(linsys_solver.fwork));

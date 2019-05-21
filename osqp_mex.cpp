@@ -64,6 +64,12 @@ const char* LINSYS_SOLVER_FIELDS[] = {"L",           //csc
                                       "Dinv",        //c_float*
                                       "P",           //c_int*
                                       "bp",          //c_float*
+                                      "sol",         //c_float*
+                                      "rho_inv_vec", //c_float*
+                                      "sigma",       //c_float
+                                      "polish",      //c_int
+                                      "n",           //c_int
+                                      "m",           //c_int
                                       "Pdiag_idx",   //c_int*
                                       "Pdiag_n",     //c_int
                                       "KKT",         //csc
@@ -295,8 +301,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Setup workspace
-        osqpData->work = osqp_setup(data, settings);
-        if(!osqpData->work){
+        c_int exitflag;
+        exitflag = osqp_setup(&(osqpData->work), data, settings);
+        if(exitflag){
            mexErrMsgTxt("Invalid problem setup");
          }
 
@@ -900,24 +907,28 @@ mxArray* copyLinsysSolverToMxStruct(OSQPWorkspace * work){
   int nnzA = data->A->p[data->A->n];
 
   // Create vectors
-  mxArray* Dinv      = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* P         = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* bp        = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* Pdiag_idx = mxCreateDoubleMatrix(Pdiag_n,1,mxREAL);
-  mxArray* PtoKKT    = mxCreateDoubleMatrix(nnzP,1,mxREAL);
-  mxArray* AtoKKT    = mxCreateDoubleMatrix(nnzA,1,mxREAL);
-  mxArray* rhotoKKT  = mxCreateDoubleMatrix(data->m,1,mxREAL);
-  mxArray* D         = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* etree     = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* Lnz       = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* iwork     = mxCreateDoubleMatrix(3*n,1,mxREAL);
-  mxArray* bwork     = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* fwork     = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* Dinv        = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* P           = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* bp          = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* sol         = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* rho_inv_vec = mxCreateDoubleMatrix(data->m,1,mxREAL);
+  mxArray* Pdiag_idx   = mxCreateDoubleMatrix(Pdiag_n,1,mxREAL);
+  mxArray* PtoKKT      = mxCreateDoubleMatrix(nnzP,1,mxREAL);
+  mxArray* AtoKKT      = mxCreateDoubleMatrix(nnzA,1,mxREAL);
+  mxArray* rhotoKKT    = mxCreateDoubleMatrix(data->m,1,mxREAL);
+  mxArray* D           = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* etree       = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* Lnz         = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* iwork       = mxCreateDoubleMatrix(3*n,1,mxREAL);
+  mxArray* bwork       = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* fwork       = mxCreateDoubleMatrix(n,1,mxREAL);
 
   // Populate vectors
   castToDoubleArr(linsys_solver->Dinv, mxGetPr(Dinv), n);
   castCintToDoubleArr(linsys_solver->P, mxGetPr(P), n);
   castToDoubleArr(linsys_solver->bp, mxGetPr(bp), n);
+  castToDoubleArr(linsys_solver->sol, mxGetPr(sol), n);
+  castToDoubleArr(linsys_solver->rho_inv_vec, mxGetPr(rho_inv_vec), data->m);
   castCintToDoubleArr(linsys_solver->Pdiag_idx, mxGetPr(Pdiag_idx), Pdiag_n);
   castCintToDoubleArr(linsys_solver->PtoKKT, mxGetPr(PtoKKT), nnzP);
   castCintToDoubleArr(linsys_solver->AtoKKT, mxGetPr(AtoKKT), nnzA);
@@ -934,22 +945,28 @@ mxArray* copyLinsysSolverToMxStruct(OSQPWorkspace * work){
   mxArray* KKT = copyCscMatrixToMxStruct(linsys_solver->KKT);
 
   //map the PRIV fields one at a time into mxArrays
-  mxSetField(mxPtr, 0, "L",         L);
-  mxSetField(mxPtr, 0, "Dinv",      Dinv);
-  mxSetField(mxPtr, 0, "P",         P);
-  mxSetField(mxPtr, 0, "bp",        bp);
-  mxSetField(mxPtr, 0, "Pdiag_idx", Pdiag_idx);
-  mxSetField(mxPtr, 0, "Pdiag_n",   mxCreateDoubleScalar(Pdiag_n));
-  mxSetField(mxPtr, 0, "KKT",       KKT);
-  mxSetField(mxPtr, 0, "PtoKKT",    PtoKKT);
-  mxSetField(mxPtr, 0, "AtoKKT",    AtoKKT);
-  mxSetField(mxPtr, 0, "rhotoKKT",  rhotoKKT);
-  mxSetField(mxPtr, 0, "D",         D);
-  mxSetField(mxPtr, 0, "etree",     etree);
-  mxSetField(mxPtr, 0, "Lnz",       Lnz);
-  mxSetField(mxPtr, 0, "iwork",     iwork);
-  mxSetField(mxPtr, 0, "bwork",     bwork);
-  mxSetField(mxPtr, 0, "fwork",     fwork);
+  mxSetField(mxPtr, 0, "L",           L);
+  mxSetField(mxPtr, 0, "Dinv",        Dinv);
+  mxSetField(mxPtr, 0, "P",           P);
+  mxSetField(mxPtr, 0, "bp",          bp);
+  mxSetField(mxPtr, 0, "sol",         sol);
+  mxSetField(mxPtr, 0, "rho_inv_vec", rho_inv_vec);
+  mxSetField(mxPtr, 0, "sigma",       mxCreateDoubleScalar(linsys_solver->sigma));
+  mxSetField(mxPtr, 0, "polish",      mxCreateDoubleScalar(linsys_solver->polish));
+  mxSetField(mxPtr, 0, "n",           mxCreateDoubleScalar(linsys_solver->n));
+  mxSetField(mxPtr, 0, "m",           mxCreateDoubleScalar(linsys_solver->m));
+  mxSetField(mxPtr, 0, "Pdiag_idx",   Pdiag_idx);
+  mxSetField(mxPtr, 0, "Pdiag_n",     mxCreateDoubleScalar(Pdiag_n));
+  mxSetField(mxPtr, 0, "KKT",         KKT);
+  mxSetField(mxPtr, 0, "PtoKKT",      PtoKKT);
+  mxSetField(mxPtr, 0, "AtoKKT",      AtoKKT);
+  mxSetField(mxPtr, 0, "rhotoKKT",    rhotoKKT);
+  mxSetField(mxPtr, 0, "D",           D);
+  mxSetField(mxPtr, 0, "etree",       etree);
+  mxSetField(mxPtr, 0, "Lnz",         Lnz);
+  mxSetField(mxPtr, 0, "iwork",       iwork);
+  mxSetField(mxPtr, 0, "bwork",       bwork);
+  mxSetField(mxPtr, 0, "fwork",       fwork);
 
   return mxPtr;
 }
@@ -1056,28 +1073,28 @@ void copyMxStructToSettings(const mxArray* mxPtr, OSQPSettings* settings){
 
   //map the OSQP_SETTINGS fields one at a time into mxArrays
   //matlab handles everything as a double
-  settings->rho                       = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
-  settings->sigma                     = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "sigma"));
-  settings->scaling                   = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "scaling"));
-  settings->adaptive_rho              = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho"));
-  settings->adaptive_rho_interval     = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_interval"));
-  settings->adaptive_rho_tolerance    = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_tolerance"));
-  settings->adaptive_rho_fraction   = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_fraction"));
-  settings->max_iter                  = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "max_iter"));
-  settings->eps_abs                   = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_abs"));
-  settings->eps_rel                   = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_rel"));
-  settings->eps_prim_inf              = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
-  settings->eps_dual_inf              = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
-  settings->alpha                     = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "alpha"));
-  settings->linsys_solver             = (enum linsys_solver_type) mxGetScalar(mxGetField(mxPtr, 0, "linsys_solver"));
-  settings->delta                     = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "delta"));
-  settings->polish                    = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "polish"));
-  settings->polish_refine_iter           = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "polish_refine_iter"));
-  settings->verbose                   = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "verbose"));
-  settings->scaled_termination           = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "scaled_termination"));
-  settings->check_termination           = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "check_termination"));
-  settings->warm_start                = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "warm_start"));
-  settings->time_limit                = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "time_limit"));
+  settings->rho                    = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
+  settings->sigma                  = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "sigma"));
+  settings->scaling                = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "scaling"));
+  settings->adaptive_rho           = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho"));
+  settings->adaptive_rho_interval  = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_interval"));
+  settings->adaptive_rho_tolerance = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_tolerance"));
+  settings->adaptive_rho_fraction  = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_fraction"));
+  settings->max_iter               = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "max_iter"));
+  settings->eps_abs                = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_abs"));
+  settings->eps_rel                = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_rel"));
+  settings->eps_prim_inf           = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
+  settings->eps_dual_inf           = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
+  settings->alpha                  = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "alpha"));
+  settings->linsys_solver          = (enum linsys_solver_type) mxGetScalar(mxGetField(mxPtr, 0, "linsys_solver"));
+  settings->delta                  = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "delta"));
+  settings->polish                 = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "polish"));
+  settings->polish_refine_iter     = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "polish_refine_iter"));
+  settings->verbose                = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "verbose"));
+  settings->scaled_termination     = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "scaled_termination"));
+  settings->check_termination      = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "check_termination"));
+  settings->warm_start             = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "warm_start"));
+  settings->time_limit             = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "time_limit"));
 
 }
 
