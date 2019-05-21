@@ -231,10 +231,10 @@ if embedded_flag ~= 1
     fprintf(f, '&update_linsys_solver_matrices_qdldl, &update_linsys_solver_rho_vec_qdldl, ');
 end
 
-    fprintf(f, '&linsys_solver_L, linsys_solver_Dinv, linsys_solver_P, linsys_solver_bp, linsys_solver_sol, linsys_solver_rho_inv_vec, ');
-    fprintf(f, '(c_float)%.20f, ',  linsys_solver.sigma);
-    fprintf(f, '%d, ',              linsys_solver.n);
-    fprintf(f, '%d, ',              linsys_solver.m);
+fprintf(f, '&linsys_solver_L, linsys_solver_Dinv, linsys_solver_P, linsys_solver_bp, linsys_solver_sol, linsys_solver_rho_inv_vec, ');
+fprintf(f, '(c_float)%.20f, ',  linsys_solver.sigma);
+fprintf(f, '%d, ',              linsys_solver.n);
+fprintf(f, '%d, ',              linsys_solver.m);
 
 if embedded_flag ~= 1
     fprintf(f, 'linsys_solver_Pdiag_idx, ');
@@ -243,7 +243,7 @@ if embedded_flag ~= 1
             'linsys_solver_D, linsys_solver_etree, linsys_solver_Lnz, linsys_solver_iwork, linsys_solver_bwork, linsys_solver_fwork, ']);
 end
 
-    fprintf(f, '};\n\n');
+fprintf(f, '};\n\n');
 
 end
 
