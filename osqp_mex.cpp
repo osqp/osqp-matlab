@@ -134,6 +134,9 @@ mxArray*  copyWorkToMxStruct(OSQPWorkspace* work);
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {   OsqpData* osqpData;  // OSQP data identifier
 
+    // Exitflag
+    c_int exitflag = 0;
+
     // Static string for static methods
     char stat_string[64];
 
@@ -301,26 +304,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Setup workspace
-        c_int exitflag;
         exitflag = osqp_setup(&(osqpData->work), data, settings);
-        if(exitflag){
-           mexErrMsgTxt("Invalid problem setup");
-         }
 
-         //cleanup temporary structures
-         // Data
-         if (data->q) mxFree(data->q);
-         if (data->l) mxFree(data->l);
-         if (data->u) mxFree(data->u);
-         if (Px) mxFree(Px);
-         if (Pi) mxFree(Pi);
-         if (Pp) mxFree(Pp);
-         if (Ax) mxFree(Ax);
-         if (Ai) mxFree(Ai);
-         if (Ap) mxFree(Ap);
-         mxFree(data);
-         // Settings
-         mxFree(settings);
+        //cleanup temporary structures
+        // Data
+        if (data->q) mxFree(data->q);
+        if (data->l) mxFree(data->l);
+        if (data->u) mxFree(data->u);
+        if (Px) mxFree(Px);
+        if (Pi) mxFree(Pi);
+        if (Pp) mxFree(Pp);
+        if (Ax) mxFree(Ax);
+        if (Ai) mxFree(Ai);
+        if (Ap) mxFree(Ap);
+        mxFree(data);
+        // Settings
+        mxFree(settings);
+
+        // Report error (if any)
+        if(exitflag){
+            mexErrMsgTxt("Invalid problem setup");
+        }
+
         return;
 
     }
@@ -401,27 +406,48 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             Ax_idx_vec = copyDoubleToCintVector(mxGetPr(Ax_idx), Ax_n);
         }
 
-        if(!mxIsEmpty(q)){
-            osqp_update_lin_cost(osqpData->work,q_vec);
+        if(!exitflag && !mxIsEmpty(q)){
+            exitflag = osqp_update_lin_cost(osqpData->work, q_vec);
+            if(exitflag){
+                exitflag = 1;
+            }
         }
-        if(!mxIsEmpty(l) && !mxIsEmpty(u)){
-            osqp_update_bounds(osqpData->work,l_vec,u_vec);
+        if(!exitflag && !mxIsEmpty(l) && !mxIsEmpty(u)){
+            exitflag = osqp_update_bounds(osqpData->work, l_vec, u_vec);
+            if(exitflag){
+                exitflag = 2;
+            }
         }
-        else if(!mxIsEmpty(l)){
-            osqp_update_lower_bound(osqpData->work,l_vec);
+        else if(!exitflag && !mxIsEmpty(l)){
+            exitflag = osqp_update_lower_bound(osqpData->work, l_vec);
+            if(exitflag){
+                exitflag = 3;
+            }
         }
-        else if(!mxIsEmpty(u)){
-            osqp_update_upper_bound(osqpData->work,u_vec);
+        else if(!exitflag && !mxIsEmpty(u)){
+            exitflag = osqp_update_upper_bound(osqpData->work, u_vec);
+            if(exitflag){
+                exitflag = 4;
+            }
         }
-        if(!mxIsEmpty(Px) && !mxIsEmpty(Ax)){
-            osqp_update_P_A(osqpData->work, Px_vec, Px_idx_vec, Px_n,
-                                          Ax_vec, Ax_idx_vec, Ax_n);
+        if(!exitflag && !mxIsEmpty(Px) && !mxIsEmpty(Ax)){
+            exitflag = osqp_update_P_A(osqpData->work, Px_vec, Px_idx_vec, Px_n,
+                                       Ax_vec, Ax_idx_vec, Ax_n);
+            if(exitflag){
+                exitflag = 5;
+            }
         }
-        else if(!mxIsEmpty(Px)){
-            osqp_update_P(osqpData->work, Px_vec, Px_idx_vec, Px_n);
+        else if(!exitflag && !mxIsEmpty(Px)){
+            exitflag = osqp_update_P(osqpData->work, Px_vec, Px_idx_vec, Px_n);
+            if(exitflag){
+                exitflag = 6;
+            }
         }
-        else if(!mxIsEmpty(Ax)){
-            osqp_update_A(osqpData->work, Ax_vec, Ax_idx_vec, Ax_n);
+        else if(!exitflag && !mxIsEmpty(Ax)){
+            exitflag = osqp_update_A(osqpData->work, Ax_vec, Ax_idx_vec, Ax_n);
+            if(exitflag){
+                exitflag = 7;
+            }
         }
 
         // Free vectors
@@ -432,6 +458,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         if(!mxIsEmpty(Ax)) mxFree(Ax_vec);
         if(!mxIsEmpty(Px_idx)) mxFree(Px_idx_vec);
         if(!mxIsEmpty(Ax_idx)) mxFree(Ax_idx_vec);
+
+        // Report errors (if any)
+        switch (exitflag) {
+            case 1:
+                mexErrMsgTxt("Linear cost update error!");
+            case 2:
+                mexErrMsgTxt("Bounds update error!");
+            case 3:
+                mexErrMsgTxt("Lower bound update error!");
+            case 4:
+                mexErrMsgTxt("Upper bound update error!");
+            case 5:
+                mexErrMsgTxt("Matrices P and A update error!");
+            case 6:
+                mexErrMsgTxt("Matrix P update error!");
+            case 7:
+                mexErrMsgTxt("Matrix A update error!");
+        }
 
         return;
     }
@@ -1100,6 +1144,8 @@ void copyMxStructToSettings(const mxArray* mxPtr, OSQPSettings* settings){
 
 void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OsqpData* osqpData){
 
+  c_int exitflag;
+
   //This does basically the same job as copyMxStructToSettings which was used
   //during setup, but uses the provided update functions in osqp.h to update
   //settings in the osqp workspace.  Protects against bad parameter writes
@@ -1140,7 +1186,10 @@ void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OsqpData* osqpData){
   c_float rho_new = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
   // Check if it has changed
   if (c_absval(rho_new - osqpData->work->settings->rho) > NEW_SETTINGS_TOL){
-      osqp_update_rho(osqpData->work, rho_new);
+      exitflag = osqp_update_rho(osqpData->work, rho_new);
+      if (exitflag){
+          mexErrMsgTxt("rho update error!");
+      }
   }
 
 
