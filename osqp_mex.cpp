@@ -308,18 +308,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         //cleanup temporary structures
         // Data
-        if (data->q) mxFree(data->q);
-        if (data->l) mxFree(data->l);
-        if (data->u) mxFree(data->u);
-        if (Px) mxFree(Px);
-        if (Pi) mxFree(Pi);
-        if (Pp) mxFree(Pp);
-        if (Ax) mxFree(Ax);
-        if (Ai) mxFree(Ai);
-        if (Ap) mxFree(Ap);
-        mxFree(data);
+        if (data->q)  mxFree(data->q);
+        if (data->l)  mxFree(data->l);
+        if (data->u)  mxFree(data->u);
+        if (Px)       mxFree(Px);
+        if (Pi)       mxFree(Pi);
+        if (Pp)       mxFree(Pp);
+        if (data->P)  mxFree(data->P);
+        if (Ax)       mxFree(Ax);
+        if (Ai)       mxFree(Ai);
+        if (Ap)       mxFree(Ap);
+        if (data->A)  mxFree(data->A);
+        if (data)     mxFree(data);
         // Settings
-        mxFree(settings);
+        if (settings) mxFree(settings);
 
         // Report error (if any)
         if(exitflag){
