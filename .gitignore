@@ -94,6 +94,9 @@ TAGS
 out/
 *.asv
 
+# Files generated during tests
+code/
+
 # Other data files
 # *.mat
 

@@ -1132,7 +1132,7 @@ void copyMxStructToSettings(const mxArray* mxPtr, OSQPSettings* settings){
   settings->eps_prim_inf           = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
   settings->eps_dual_inf           = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
   settings->alpha                  = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "alpha"));
-  settings->linsys_solver          = (enum linsys_solver_type) mxGetScalar(mxGetField(mxPtr, 0, "linsys_solver"));
+  settings->linsys_solver          = (enum linsys_solver_type) (c_int) mxGetScalar(mxGetField(mxPtr, 0, "linsys_solver"));
   settings->delta                  = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "delta"));
   settings->polish                 = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "polish"));
   settings->polish_refine_iter     = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "polish_refine_iter"));
