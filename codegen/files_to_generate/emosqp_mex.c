@@ -476,4 +476,4 @@ vecData[i] -= 1;  // Decrease index by 1
 }
 
 
-#endif  // end EMBEDDED
+#endif  /* if EMBEDDED != 1 */

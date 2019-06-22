@@ -259,7 +259,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         //Create data and settings containers
         OSQPSettings* settings = (OSQPSettings *)mxCalloc(1,sizeof(OSQPSettings));
-        OSQPData*     data     = (OSQPData *)mxCalloc(1,sizeof(OSQPData));
 
         // handle the problem data first.  Matlab-side
         // class wrapper is responsible for ensuring that
@@ -275,23 +274,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         const mxArray* u = prhs[8];
 
         // Create Data Structure
-        data->n = (c_int) mxGetScalar(prhs[2]);
-        data->m = (c_int) mxGetScalar(prhs[3]);
-        data->q = copyToCfloatVector(mxGetPr(q), data->n);
-        data->l = copyToCfloatVector(mxGetPr(l), data->m);
-        data->u = copyToCfloatVector(mxGetPr(u), data->m);
+        c_int n = (c_int) mxGetScalar(prhs[2]);
+        c_int m = (c_int) mxGetScalar(prhs[3]);
+        c_float * q_data = copyToCfloatVector(mxGetPr(q), n);
+        c_float * l_data = copyToCfloatVector(mxGetPr(l), m);
+        c_float * u_data = copyToCfloatVector(mxGetPr(u), m);
 
         // Matrix P:  nnz = P->p[n]
-        c_int * Pp = copyToCintVector(mxGetJc(P), data->n + 1);
-        c_int * Pi = copyToCintVector(mxGetIr(P), Pp[data->n]);
-        c_float * Px = copyToCfloatVector(mxGetPr(P), Pp[data->n]);
-        data->P  = csc_matrix(data->n, data->n, Pp[data->n], Px, Pi, Pp);
+        c_int   * Pp  = copyToCintVector(mxGetJc(P), n + 1);
+        c_int   * Pi  = copyToCintVector(mxGetIr(P), Pp[n]);
+        c_float * Px  = copyToCfloatVector(mxGetPr(P), Pp[n]);
+        csc * P_data  = csc_matrix(n, n, Pp[n], Px, Pi, Pp);
 
         // Matrix A: nnz = A->p[n]
-        c_int * Ap = copyToCintVector(mxGetJc(A), data->n + 1);
-        c_int * Ai = copyToCintVector(mxGetIr(A), Ap[data->n]);
-        c_float * Ax = copyToCfloatVector(mxGetPr(A), Ap[data->n]);
-        data->A  = csc_matrix(data->m, data->n, Ap[data->n], Ax, Ai, Ap);
+        c_int   * Ap  = copyToCintVector(mxGetJc(A), n + 1);
+        c_int   * Ai  = copyToCintVector(mxGetIr(A), Ap[n]);
+        c_float * Ax  = copyToCfloatVector(mxGetPr(A), Ap[n]);
+        csc * A_data  = csc_matrix(m, n, Ap[n], Ax, Ai, Ap);
 
         // Create Settings
         const mxArray* mxSettings = prhs[9];
@@ -304,24 +303,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Setup workspace
-        exitflag = osqp_setup(&(osqpData->work), data, settings);
+        exitflag = osqp_setup(&(osqpData->work), P_data, q_data,
+                              A_data, l_data, u_data, m, n, settings);
 
         //cleanup temporary structures
-        // Data
-        if (data->q)  mxFree(data->q);
-        if (data->l)  mxFree(data->l);
-        if (data->u)  mxFree(data->u);
-        if (Px)       mxFree(Px);
-        if (Pi)       mxFree(Pi);
-        if (Pp)       mxFree(Pp);
-        if (data->P)  mxFree(data->P);
-        if (Ax)       mxFree(Ax);
-        if (Ai)       mxFree(Ai);
-        if (Ap)       mxFree(Ap);
-        if (data->A)  mxFree(data->A);
-        if (data)     mxFree(data);
-        // Settings
-        if (settings) mxFree(settings);
+        mxFree(q_data);
+        mxFree(l_data);
+        mxFree(u_data);
+        mxFree(Px);
+        mxFree(Pi);
+        mxFree(Pp);
+        mxFree(P_data);
+        mxFree(Ax);
+        mxFree(Ai);
+        mxFree(Ap);
+        mxFree(A_data);
+        mxFree(settings);
 
         // Report error (if any)
         if(exitflag){
@@ -625,7 +622,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             setToNaN(mxGetPr(plhs[1]), osqpData->work->data->m);
 
             //primal infeasibility certificates
-            castToDoubleArr(osqpData->work->delta_y, mxGetPr(plhs[2]), osqpData->work->data->m);
+            castToDoubleArr(osqpData->work->delta_y->values, mxGetPr(plhs[2]), osqpData->work->data->m);
 
             //dual infeasibility certificates -> NaN values
             setToNaN(mxGetPr(plhs[3]), osqpData->work->data->n);
@@ -643,7 +640,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             setToNaN(mxGetPr(plhs[2]), osqpData->work->data->m);
 
             //dual infeasibility certificates
-            castToDoubleArr(osqpData->work->delta_x, mxGetPr(plhs[3]), osqpData->work->data->n);
+            castToDoubleArr(osqpData->work->delta_x->values, mxGetPr(plhs[3]), osqpData->work->data->n);
 
             // Set objective value to -infinity
             osqpData->work->info->obj_val = -mxGetInf();
@@ -912,9 +909,9 @@ mxArray* copyDataToMxStruct(OSQPWorkspace* work){
   mxArray* u = mxCreateDoubleMatrix(work->data->m,1,mxREAL);
 
   // Populate vectors
-  castToDoubleArr(work->data->q, mxGetPr(q), work->data->n);
-  castToDoubleArr(work->data->l, mxGetPr(l), work->data->m);
-  castToDoubleArr(work->data->u, mxGetPr(u), work->data->m);
+  castToDoubleArr(work->data->q->values, mxGetPr(q), work->data->n);
+  castToDoubleArr(work->data->l->values, mxGetPr(l), work->data->m);
+  castToDoubleArr(work->data->u->values, mxGetPr(u), work->data->m);
 
   // Create matrices
   mxArray* P = copyCscMatrixToMxStruct(work->data->P);
@@ -1037,10 +1034,10 @@ mxArray* copyScalingToMxStruct(OSQPWorkspace *work){
       mxArray* Einv = mxCreateDoubleMatrix(m,1,mxREAL);
 
       // Populate vectors
-      castToDoubleArr(work->scaling->D,    mxGetPr(D), n);
-      castToDoubleArr(work->scaling->E,    mxGetPr(E), m);
-      castToDoubleArr(work->scaling->Dinv, mxGetPr(Dinv), n);
-      castToDoubleArr(work->scaling->Einv, mxGetPr(Einv), m);
+      castToDoubleArr(work->scaling->D->values,    mxGetPr(D), n);
+      castToDoubleArr(work->scaling->E->values,    mxGetPr(E), m);
+      castToDoubleArr(work->scaling->Dinv->values, mxGetPr(Dinv), n);
+      castToDoubleArr(work->scaling->Einv->values, mxGetPr(Einv), m);
 
       //map the SCALING fields one at a time
       mxSetField(mxPtr, 0, "c", mxCreateDoubleScalar(work->scaling->c));
@@ -1073,9 +1070,9 @@ mxArray* copyRhoVectorsToMxStruct(OSQPWorkspace *work){
     mxArray* constr_type = mxCreateDoubleMatrix(m,1,mxREAL);
 
     // Populate vectors
-    castToDoubleArr(work->rho_vec,     mxGetPr(rho_vec),     m);
-    castToDoubleArr(work->rho_inv_vec, mxGetPr(rho_inv_vec), m);
-    castCintToDoubleArr(work->constr_type, mxGetPr(constr_type), m);
+    castToDoubleArr(work->rho_vec->values,         mxGetPr(rho_vec),     m);
+    castToDoubleArr(work->rho_inv_vec->values,     mxGetPr(rho_inv_vec), m);
+    castCintToDoubleArr(work->constr_type->values, mxGetPr(constr_type), m);
 
     //map the RHO_VECTORS fields one at a time into mxArrays
     mxSetField(mxPtr, 0, "rho_vec",     rho_vec);

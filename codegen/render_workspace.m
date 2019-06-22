@@ -29,9 +29,11 @@ fprintf(srcFile, ' */\n\n');
 
 % Include types, constants and private header
 fprintf(incFile, '#include \"types.h\"\n');
+fprintf(incFile, '#include \"lin_alg.h\"\n');
 fprintf(incFile, '#include \"qdldl_interface.h\"\n\n');
 
 fprintf(srcFile, '#include \"types.h\"\n');
+fprintf(srcFile, '#include \"lin_alg.h\"\n');
 fprintf(srcFile, '#include \"qdldl_interface.h\"\n\n');
 
 % Write data structure
@@ -63,7 +65,7 @@ write_workspace_src(srcFile, work.data.n, work.data.m, work.rho_vectors, embedde
 write_workspace_inc(incFile, work.data.n, work.data.m, work.rho_vectors, embedded_flag);
 
 % The endif for the include-guard
-fprintf(incFile, '#endif // ifndef %s\n', incGuard);
+fprintf(incFile, '#endif /* ifndef %s */\n', incGuard);
 
 fclose(incFile);
 fclose(srcFile);
@@ -75,7 +77,7 @@ end
 function write_data_src( f, data )
 %WRITE_DATA_SRC Write data structure to file.
 
-fprintf(f, '// Define data structure\n');
+fprintf(f, '/* Define data structure */\n');
 
 % Define matrix P
 write_mat(f, data.P, 'Pdata');
@@ -84,15 +86,15 @@ write_mat(f, data.P, 'Pdata');
 write_mat(f, data.A, 'Adata');
 
 % Define other data vectors
-write_vec(f, data.q, 'qdata', 'c_float');
-write_vec(f, data.l, 'ldata', 'c_float');
-write_vec(f, data.u, 'udata', 'c_float');
+write_OSQPVector(f, data.q, 'qdata', 'f');
+write_OSQPVector(f, data.l, 'ldata', 'f');
+write_OSQPVector(f, data.u, 'udata', 'f');
 
 % Define data structure
-fprintf(f, 'OSQPData data = {');
+fprintf(f, '\nOSQPData data = {');
 fprintf(f, '%d, ', data.n);
 fprintf(f, '%d, ', data.m);
-fprintf(f, '&Pdata, &Adata, qdata, ldata, udata');
+fprintf(f, '&Pdata, &Adata, &qdata, &ldata, &udata');
 fprintf(f, '};\n\n');
 
 end
@@ -100,7 +102,7 @@ end
 function write_data_inc( f, data )
 %WRITE_DATA_INC Write data structure prototypes to file.
 
-fprintf(f, '// Data structure prototypes\n');
+fprintf(f, '/* Data structure prototypes */\n');
 
 % Define matrix P
 write_mat_extern(f, data.P, 'Pdata');
@@ -122,7 +124,7 @@ end
 function write_settings_src( f, settings, embedded_flag )
 %WRITE_SETTINGS_SRC Write settings structure to file.
 
-fprintf(f, '// Define settings structure\n');
+fprintf(f, '/* Define settings structure */\n');
 fprintf(f, 'OSQPSettings settings = {');
 fprintf(f, '(c_float)%.20f, ', settings.rho);
 fprintf(f, '(c_float)%.20f, ', settings.sigma);
@@ -154,7 +156,7 @@ end
 function write_settings_inc( f, settings, embedded_flag )
 %WRITE_SETTINGS_INC Write prototype for settings structure to file.
 
-fprintf(f, '// Settings structure prototype\n');
+fprintf(f, '/* Settings structure prototype */\n');
 fprintf(f, 'extern OSQPSettings settings;\n\n');
 
 end
@@ -163,18 +165,18 @@ end
 function write_scaling_src( f, scaling )
 %WRITE_SCALING_SRC Write scaling structure to file.
 
-fprintf(f, '// Define scaling structure\n');
+fprintf(f, '/* Define scaling structure */\n');
 
 if ~isempty(scaling)
-    write_vec(f, scaling.D,    'Dscaling',    'c_float');
-    write_vec(f, scaling.Dinv, 'Dinvscaling', 'c_float');
-    write_vec(f, scaling.E,    'Escaling',    'c_float');
-    write_vec(f, scaling.Einv, 'Einvscaling', 'c_float');
-    fprintf(f, 'OSQPScaling scaling = {');
+    write_OSQPVector(f, scaling.D,    'Dscaling',    'f');
+    write_OSQPVector(f, scaling.Dinv, 'Dinvscaling', 'f');
+    write_OSQPVector(f, scaling.E,    'Escaling',    'f');
+    write_OSQPVector(f, scaling.Einv, 'Einvscaling', 'f');
+    fprintf(f, '\nOSQPScaling scaling = {');
     fprintf(f, '(c_float)%.20f, ', scaling.c);
-    fprintf(f, 'Dscaling, Escaling, ');
+    fprintf(f, '&Dscaling, &Escaling, ');
     fprintf(f, '(c_float)%.20f, ', scaling.cinv);
-    fprintf(f, 'Dinvscaling, Einvscaling};\n\n');
+    fprintf(f, '&Dinvscaling, &Einvscaling};\n\n');
 else
     fprintf(f, 'OSQPScaling scaling;\n\n');
 end
@@ -185,13 +187,13 @@ end
 function write_scaling_inc( f, scaling )
 %WRITE_SCALING_INC Write prototypes for the scaling structure to file.
 
-fprintf(f, '// Scaling structure prototypes\n');
+fprintf(f, '/* Scaling structure prototypes */\n');
 
 if ~isempty(scaling)
-    write_vec_extern(f, scaling.D,    'Dscaling',    'c_float');
-    write_vec_extern(f, scaling.Dinv, 'Dinvscaling', 'c_float');
-    write_vec_extern(f, scaling.E,    'Escaling',    'c_float');
-    write_vec_extern(f, scaling.Einv, 'Einvscaling', 'c_float');
+    write_OSQPVector_extern(f, length(scaling.D),    'Dscaling',    'f');
+    write_OSQPVector_extern(f, length(scaling.Dinv), 'Dinvscaling', 'f');
+    write_OSQPVector_extern(f, length(scaling.E),    'Escaling',    'f');
+    write_OSQPVector_extern(f, length(scaling.Einv), 'Einvscaling', 'f');
 end
 
 fprintf(f, 'extern OSQPScaling scaling;\n\n');
@@ -202,7 +204,7 @@ end
 function write_linsys_solver_src( f, linsys_solver, embedded_flag )
 %WRITE_LINSYS_SOLVER_SRC Write linsys_solver structure to file.
 
-fprintf(f, '// Define linsys_solver structure\n');
+fprintf(f, '/* Define linsys_solver structure */\n');
 write_mat(f, linsys_solver.L,             'linsys_solver_L')
 write_vec(f, linsys_solver.Dinv,          'linsys_solver_Dinv',        'c_float')
 write_vec(f, linsys_solver.P,             'linsys_solver_P',           'c_int')
@@ -251,10 +253,10 @@ end
 function write_linsys_solver_inc( f, linsys_solver, embedded_flag )
 %WRITE_LINSYS_SOLVER_INC Write prototypes for linsys_solver structure to file.
 
-fprintf(f, '// Prototypes for linsys_solver structure\n');
-write_mat_extern(f, linsys_solver.L,            'linsys_solver_L')
-write_vec_extern(f, linsys_solver.Dinv,         'linsys_solver_Dinv',        'c_float')
-write_vec_extern(f, linsys_solver.P,            'linsys_solver_P',           'c_int')
+fprintf(f, '/* Prototypes for linsys_solver structure */\n');
+write_mat_extern(f, linsys_solver.L,    'linsys_solver_L')
+write_vec_extern(f, linsys_solver.Dinv, 'linsys_solver_Dinv', 'c_float')
+write_vec_extern(f, linsys_solver.P,    'linsys_solver_P',    'c_int')
 fprintf(f, 'extern c_float linsys_solver_bp[%d];\n',  length(linsys_solver.bp));
 fprintf(f, 'extern c_float linsys_solver_sol[%d];\n', length(linsys_solver.sol));
 write_vec_extern(f, linsys_solver.rho_inv_vec,  'linsys_solver_rho_inv_vec', 'c_float')
@@ -281,7 +283,7 @@ end
 function write_solution_src( f, n, m )
 %WRITE_SOLUTION_SRC Preallocate solution vectors
 
-fprintf(f, '// Define solution\n');
+fprintf(f, '/* Define solution */\n');
 fprintf(f, 'c_float xsolution[%d];\n', n);
 fprintf(f, 'c_float ysolution[%d];\n\n', m);
 fprintf(f, 'OSQPSolution solution = {xsolution, ysolution};\n\n');
@@ -291,7 +293,7 @@ end
 function write_solution_inc( f, n, m )
 %WRITE_SOLUTION_INC Prototypes for solution vectors
 
-fprintf(f, '// Prototypes for solution\n');
+fprintf(f, '/* Prototypes for solution */\n');
 fprintf(f, 'extern c_float xsolution[%d];\n', n);
 fprintf(f, 'extern c_float ysolution[%d];\n\n', m);
 fprintf(f, 'extern OSQPSolution solution;\n\n');
@@ -302,7 +304,7 @@ end
 function write_info_src( f )
 %WRITE_INFO_SRC Preallocate info structure
 
-fprintf(f, '// Define info\n');
+fprintf(f, '/* Define info */\n');
 fprintf(f, 'OSQPInfo info = {0, "Unsolved", OSQP_UNSOLVED, (c_float)0.0, (c_float)0.0, (c_float)0.0};\n\n');
 
 end
@@ -310,7 +312,7 @@ end
 function write_info_inc( f )
 %WRITE_INFO_INC Prototype for info structure
 
-fprintf(f, '// Prototype for info structure\n');
+fprintf(f, '/* Prototype for info structure */\n');
 fprintf(f, 'extern OSQPInfo info;\n\n');
 
 end
@@ -319,42 +321,47 @@ end
 function write_workspace_src( f, n, m, rho_vectors, embedded_flag )
 %WRITE_WORKSPACE_SRC Preallocate workspace structure and populate rho_vectors
 
-fprintf(f, '// Define workspace\n');
-write_vec(f, rho_vectors.rho_vec,     'work_rho_vec',     'c_float');
-write_vec(f, rho_vectors.rho_inv_vec, 'work_rho_inv_vec', 'c_float');
+fprintf(f, '/* Define workspace */\n');
+write_OSQPVector(f, rho_vectors.rho_vec,     'work_rho_vec',     'f');
+write_OSQPVector(f, rho_vectors.rho_inv_vec, 'work_rho_inv_vec', 'f');
 if embedded_flag ~= 1
-    write_vec(f, rho_vectors.constr_type, 'work_constr_type', 'c_int');
+    write_OSQPVector(f, rho_vectors.constr_type, 'work_constr_type', 'f');
 end
-fprintf(f, 'c_float work_x[%d];\n', n);
-fprintf(f, 'c_float work_y[%d];\n', m);
-fprintf(f, 'c_float work_z[%d];\n', m);
-fprintf(f, 'c_float work_xz_tilde[%d];\n', n+m);
-fprintf(f, 'c_float work_x_prev[%d];\n', n);
-fprintf(f, 'c_float work_z_prev[%d];\n', m);
-fprintf(f, 'c_float work_Ax[%d];\n', m);
-fprintf(f, 'c_float work_Px[%d];\n', n);
-fprintf(f, 'c_float work_Aty[%d];\n', n);
-fprintf(f, 'c_float work_delta_y[%d];\n', m);
-fprintf(f, 'c_float work_Atdelta_y[%d];\n', n);
-fprintf(f, 'c_float work_delta_x[%d];\n', n);
-fprintf(f, 'c_float work_Pdelta_x[%d];\n', n);
-fprintf(f, 'c_float work_Adelta_x[%d];\n', m);
-fprintf(f, 'c_float work_D_temp[%d];\n', n);
-fprintf(f, 'c_float work_D_temp_A[%d];\n', n);
-fprintf(f, 'c_float work_E_temp[%d];\n\n', m);
+write_OSQPVector_empty(f, n,   'work_x',        'f');
+write_OSQPVector_empty(f, m,   'work_y',        'f');
+write_OSQPVector_empty(f, m,   'work_z',        'f');
+write_OSQPVector_empty(f, n+m, 'work_xz_tilde', 'f');
 
-fprintf(f, 'OSQPWorkspace workspace = {\n');
+fprintf(f, 'OSQPVectorf work_xtilde_view = {work_xz_tilde_val, %d};\n', n);
+fprintf(f, 'OSQPVectorf work_ztilde_view = {work_xz_tilde_val + %d, %d};\n', n, m);
+
+write_OSQPVector_empty(f, n, 'work_x_prev',    'f');
+write_OSQPVector_empty(f, m, 'work_z_prev',    'f');
+write_OSQPVector_empty(f, m, 'work_Ax',        'f');
+write_OSQPVector_empty(f, n, 'work_Px',        'f');
+write_OSQPVector_empty(f, n, 'work_Aty',       'f');
+write_OSQPVector_empty(f, m, 'work_delta_y',   'f');
+write_OSQPVector_empty(f, n, 'work_Atdelta_y', 'f');
+write_OSQPVector_empty(f, n, 'work_delta_x',   'f');
+write_OSQPVector_empty(f, n, 'work_Pdelta_x',  'f');
+write_OSQPVector_empty(f, m, 'work_Adelta_x',  'f');
+write_OSQPVector_empty(f, n, 'work_D_temp',    'f');
+write_OSQPVector_empty(f, n, 'work_D_temp_A',  'f');
+write_OSQPVector_empty(f, m, 'work_E_temp',    'f');
+
+fprintf(f, '\nOSQPWorkspace workspace = {\n');
 fprintf(f, '&data, (LinSysSolver *)&linsys_solver,\n');
-fprintf(f, 'work_rho_vec, work_rho_inv_vec,\n');
+fprintf(f, '&work_rho_vec, &work_rho_inv_vec,\n');
 if embedded_flag ~= 1
-    fprintf(f, 'work_constr_type,\n');
+    fprintf(f, '&work_constr_type,\n');
 end
-fprintf(f, 'work_x, work_y, work_z, work_xz_tilde,\n');
-fprintf(f, 'work_x_prev, work_z_prev,\n');
-fprintf(f, 'work_Ax, work_Px, work_Aty,\n');
-fprintf(f, 'work_delta_y, work_Atdelta_y,\n');
-fprintf(f, 'work_delta_x, work_Pdelta_x, work_Adelta_x,\n');
-fprintf(f, 'work_D_temp, work_D_temp_A, work_E_temp,\n');
+fprintf(f, '&work_x, &work_y, &work_z, &work_xz_tilde,\n');
+fprintf(f, '&work_xtilde_view, &work_ztilde_view,\n');
+fprintf(f, '&work_x_prev, &work_z_prev,\n');
+fprintf(f, '&work_Ax, &work_Px, &work_Aty,\n');
+fprintf(f, '&work_delta_y, &work_Atdelta_y,\n');
+fprintf(f, '&work_delta_x, &work_Pdelta_x, &work_Adelta_x,\n');
+fprintf(f, '&work_D_temp, &work_D_temp_A, &work_E_temp,\n');
 fprintf(f, '&settings, &scaling, &solution, &info};\n\n');
 
 end
@@ -362,31 +369,35 @@ end
 function write_workspace_inc( f, n, m, rho_vectors, embedded_flag )
 %WRITE_WORKSPACE_INC Prototypes for the workspace structure and rho_vectors
 
-fprintf(f, '// Prototypes for the workspace\n');
-write_vec_extern(f, rho_vectors.rho_vec,     'work_rho_vec',     'c_float');
-write_vec_extern(f, rho_vectors.rho_inv_vec, 'work_rho_inv_vec', 'c_float');
+fprintf(f, '/* Prototypes for the workspace */\n');
+write_OSQPVector_extern(f, m, 'work_rho_vec',     'f');
+write_OSQPVector_extern(f, m, 'work_rho_inv_vec', 'f');
 if embedded_flag ~= 1
-    write_vec_extern(f, rho_vectors.constr_type, 'work_constr_type', 'c_int');
+    write_OSQPVector_extern(f, m, 'work_constr_type', 'i');
 end
-fprintf(f, 'extern c_float work_x[%d];\n', n);
-fprintf(f, 'extern c_float work_y[%d];\n', m);
-fprintf(f, 'extern c_float work_z[%d];\n', m);
-fprintf(f, 'extern c_float work_xz_tilde[%d];\n', n+m);
-fprintf(f, 'extern c_float work_x_prev[%d];\n', n);
-fprintf(f, 'extern c_float work_z_prev[%d];\n', m);
-fprintf(f, 'extern c_float work_Ax[%d];\n', m);
-fprintf(f, 'extern c_float work_Px[%d];\n', n);
-fprintf(f, 'extern c_float work_Aty[%d];\n', n);
-fprintf(f, 'extern c_float work_delta_y[%d];\n', m);
-fprintf(f, 'extern c_float work_Atdelta_y[%d];\n', n);
-fprintf(f, 'extern c_float work_delta_x[%d];\n', n);
-fprintf(f, 'extern c_float work_Pdelta_x[%d];\n', n);
-fprintf(f, 'extern c_float work_Adelta_x[%d];\n', m);
-fprintf(f, 'extern c_float work_D_temp[%d];\n', n);
-fprintf(f, 'extern c_float work_D_temp_A[%d];\n', n);
-fprintf(f, 'extern c_float work_E_temp[%d];\n\n', m);
+write_OSQPVector_extern(f, n,   'work_x',        'f');
+write_OSQPVector_extern(f, m,   'work_y',        'f');
+write_OSQPVector_extern(f, m,   'work_z',        'f');
+write_OSQPVector_extern(f, n+m, 'work_xz_tilde', 'f');
 
-fprintf(f, 'extern OSQPWorkspace workspace;\n\n');
+fprintf(f, 'extern OSQPVectorf work_xtilde_view;\n');
+fprintf(f, 'extern OSQPVectorf work_ztilde_view;\n');
+
+write_OSQPVector_extern(f, n, 'work_x_prev',    'f');
+write_OSQPVector_extern(f, m, 'work_z_prev',    'f');
+write_OSQPVector_extern(f, m, 'work_Ax',        'f');
+write_OSQPVector_extern(f, n, 'work_Px',        'f');
+write_OSQPVector_extern(f, n, 'work_Aty',       'f');
+write_OSQPVector_extern(f, m, 'work_delta_y',   'f');
+write_OSQPVector_extern(f, n, 'work_Atdelta_y', 'f');
+write_OSQPVector_extern(f, n, 'work_delta_x',   'f');
+write_OSQPVector_extern(f, n, 'work_Pdelta_x',  'f');
+write_OSQPVector_extern(f, m, 'work_Adelta_x',  'f');
+write_OSQPVector_extern(f, n, 'work_D_temp',    'f');
+write_OSQPVector_extern(f, n, 'work_D_temp_A',  'f');
+write_OSQPVector_extern(f, m, 'work_E_temp',    'f');
+
+fprintf(f, '\nextern OSQPWorkspace workspace;\n\n');
 
 end
 
@@ -415,6 +426,64 @@ fprintf(f, 'extern %s %s[%d];\n', vec_type, name, length(vec));
 
 end
 
+function write_OSQPVector(f, vec, name, vec_type)
+%WRITE_OSQPVECTOR Write OSQPvector to file.
+
+if strcmp(vec_type, 'f')
+    val_type = 'c_float';
+elseif strcmp(vec_type, 'i')
+    val_type = 'c_int';
+else
+    error('Unexpected vec_type')
+end
+
+fprintf(f, '%s %s_val[%d] = {\n', val_type, name, length(vec));
+
+% Write vector values
+for i = 1 : length(vec)
+    if strcmp(vec_type, 'f')
+        fprintf(f, '(c_float)%.20f,\n', vec(i));
+    else
+        fprintf(f, '%i,\n', vec(i));
+    end
+end
+fprintf(f, '};\n');
+
+fprintf(f, 'OSQPVector%s %s = {%s_val, %d};\n', vec_type, name, name, length(vec));
+
+end
+
+function write_OSQPVector_extern(f, len, name, vec_type)
+%WRITE_OSQPVECTOR_EXTERN Write OSQPvector prototype to file.
+
+if strcmp(vec_type, 'f')
+    val_type = 'c_float';
+elseif strcmp(vec_type, 'i')
+    val_type = 'c_int';
+else
+    error('Unexpected vec_type')
+end
+
+fprintf(f, 'extern %s %s_val[%d];\n', val_type, name, len);
+fprintf(f, 'extern OSQPVector%s %s;\n', vec_type, name);
+
+end
+
+function write_OSQPVector_empty(f, len, name, vec_type)
+%WRITE_OSQPVECTOR_EMPTY Write empty OSQPvector to file.
+
+if strcmp(vec_type, 'f')
+    val_type = 'c_float';
+elseif strcmp(vec_type, 'i')
+    val_type = 'c_int';
+else
+    error('Unexpected vec_type')
+end
+
+fprintf(f, '%s %s_val[%d];\n', val_type, name, len);
+fprintf(f, 'OSQPVector%s %s = {%s_val, %d};\n', vec_type, name, name, len);
+    
+end
 
 function write_mat(f, mat, name)
 %WRITE_MAT Write matrix in CSC format to file.
@@ -424,13 +493,13 @@ write_vec(f, mat.p, [name, '_p'], 'c_int');
 write_vec(f, mat.x, [name, '_x'], 'c_float');
 
 fprintf(f, 'csc %s = {', name);
-fprintf(f, '%d, ', mat.nzmax);
-fprintf(f, '%d, ', mat.m);
-fprintf(f, '%d, ', mat.n);
-fprintf(f, '%s_p, ', name);
-fprintf(f, '%s_i, ', name);
-fprintf(f, '%s_x, ', name);
-fprintf(f, '%d};\n', mat.nz);
+fprintf(f, '%d, ',       mat.nzmax);
+fprintf(f, '%d, ',       mat.m);
+fprintf(f, '%d, ',       mat.n);
+fprintf(f, '%s_p, ',     name);
+fprintf(f, '%s_i, ',     name);
+fprintf(f, '%s_x, ',     name);
+fprintf(f, '%d};\n\n',   mat.nz);
 
 end
 

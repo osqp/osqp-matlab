@@ -207,7 +207,8 @@ if( any(strcmpi(what,'codegen')) || any(strcmpi(what,'all')) )
     end
     cdirs  = {fullfile(osqp_dir, 'src'),...
               fullfile(qdldl_dir),...
-              fullfile(qdldl_dir, 'qdldl_sources', 'src')};
+              fullfile(qdldl_dir, 'qdldl_sources', 'src'),...
+              fullfile(osqp_dir, 'algebra')};
     for j = 1:length(cdirs)
         cfiles = dir(fullfile(cdirs{j},'*.c'));
         for i = 1 : length(cfiles)
