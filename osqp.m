@@ -497,6 +497,12 @@ classdef osqp < handle
                         fullfile(target_include_dir, hfiles(i).name));
                 end
             end
+
+                % Copy cmake files
+            copyfile(fullfile(cdir, 'CMakeLists.txt'), ...
+                    fullfile(target_src_dir, 'osqp', 'CMakeLists.txt'));
+            copyfile(fullfile(hdir, 'CMakeLists.txt'), ...
+                    fullfile(target_include_dir, 'CMakeLists.txt'));
             fprintf('[done]\n');
 
             % Copy example.c

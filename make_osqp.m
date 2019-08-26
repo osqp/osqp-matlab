@@ -251,8 +251,13 @@ if( any(strcmpi(what,'codegen')) || any(strcmpi(what,'all')) )
                 fullfile(cg_configure_dir, configure_files(i).name));
         end
     end
-
-
+    
+    % Copy cmake files    
+    copyfile(fullfile(osqp_dir, 'src', 'CMakeLists.txt'), ...
+                    fullfile(cg_src_dir, 'CMakeLists.txt'));
+    copyfile(fullfile(osqp_dir, 'include', 'CMakeLists.txt'), ...
+                    fullfile(cg_include_dir, 'CMakeLists.txt'));
+                
     fprintf('\t\t\t\t\t[done]\n');
 
 end
