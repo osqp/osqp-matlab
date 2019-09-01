@@ -214,7 +214,10 @@ classdef osqp < handle
             if (isempty(P))
                 P = sparse(n, n);
             else
-                P   = sparse(P);
+                P = sparse(P);
+            end
+            if (~istriu(P))
+                P = triu(P);
             end
             if (isempty(q))
                 q = zeros(n, 1);
@@ -494,6 +497,12 @@ classdef osqp < handle
                         fullfile(target_include_dir, hfiles(i).name));
                 end
             end
+
+                % Copy cmake files
+            copyfile(fullfile(cdir, 'CMakeLists.txt'), ...
+                    fullfile(target_src_dir, 'osqp', 'CMakeLists.txt'));
+            copyfile(fullfile(hdir, 'CMakeLists.txt'), ...
+                    fullfile(target_include_dir, 'CMakeLists.txt'));
             fprintf('[done]\n');
 
             % Copy example.c

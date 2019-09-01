@@ -8,6 +8,12 @@ mex_cmd = sprintf('mex -O -silent');
 % Add arguments to mex compiler
 mexoptflags = '-DMATLAB';
 
+% If running on linux, include the c99 option so GCC uses c99 to compile.
+% Otherwise it will throw errors about the comment style
+if ( ~ismac() && isunix() )
+    mexoptflags = sprintf('%s CFLAGS="$CFLAGS -std=c99"', mexoptflags);
+end
+
 % Add embedded flag
 cmake_args = sprintf('-DEMBEDDED:INT=%i', EMBEDDED_FLAG);
 

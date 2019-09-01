@@ -64,6 +64,12 @@ const char* LINSYS_SOLVER_FIELDS[] = {"L",           //csc
                                       "Dinv",        //c_float*
                                       "P",           //c_int*
                                       "bp",          //c_float*
+                                      "sol",         //c_float*
+                                      "rho_inv_vec", //c_float*
+                                      "sigma",       //c_float
+                                      "polish",      //c_int
+                                      "n",           //c_int
+                                      "m",           //c_int
                                       "Pdiag_idx",   //c_int*
                                       "Pdiag_n",     //c_int
                                       "KKT",         //csc
@@ -127,6 +133,9 @@ mxArray*  copyWorkToMxStruct(OSQPWorkspace* work);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {   OsqpData* osqpData;  // OSQP data identifier
+
+    // Exitflag
+    c_int exitflag = 0;
 
     // Static string for static methods
     char stat_string[64];
@@ -295,25 +304,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Setup workspace
-        osqpData->work = osqp_setup(data, settings);
-        if(!osqpData->work){
-           mexErrMsgTxt("Invalid problem setup");
-         }
+        exitflag = osqp_setup(&(osqpData->work), data, settings);
 
-         //cleanup temporary structures
-         // Data
-         if (data->q) mxFree(data->q);
-         if (data->l) mxFree(data->l);
-         if (data->u) mxFree(data->u);
-         if (Px) mxFree(Px);
-         if (Pi) mxFree(Pi);
-         if (Pp) mxFree(Pp);
-         if (Ax) mxFree(Ax);
-         if (Ai) mxFree(Ai);
-         if (Ap) mxFree(Ap);
-         mxFree(data);
-         // Settings
-         mxFree(settings);
+        //cleanup temporary structures
+        // Data
+        if (data->q)  mxFree(data->q);
+        if (data->l)  mxFree(data->l);
+        if (data->u)  mxFree(data->u);
+        if (Px)       mxFree(Px);
+        if (Pi)       mxFree(Pi);
+        if (Pp)       mxFree(Pp);
+        if (data->P)  mxFree(data->P);
+        if (Ax)       mxFree(Ax);
+        if (Ai)       mxFree(Ai);
+        if (Ap)       mxFree(Ap);
+        if (data->A)  mxFree(data->A);
+        if (data)     mxFree(data);
+        // Settings
+        if (settings) mxFree(settings);
+
+        // Report error (if any)
+        if(exitflag){
+            mexErrMsgTxt("Invalid problem setup");
+        }
+
         return;
 
     }
@@ -394,27 +408,48 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             Ax_idx_vec = copyDoubleToCintVector(mxGetPr(Ax_idx), Ax_n);
         }
 
-        if(!mxIsEmpty(q)){
-            osqp_update_lin_cost(osqpData->work,q_vec);
+        if(!exitflag && !mxIsEmpty(q)){
+            exitflag = osqp_update_lin_cost(osqpData->work, q_vec);
+            if(exitflag){
+                exitflag = 1;
+            }
         }
-        if(!mxIsEmpty(l) && !mxIsEmpty(u)){
-            osqp_update_bounds(osqpData->work,l_vec,u_vec);
+        if(!exitflag && !mxIsEmpty(l) && !mxIsEmpty(u)){
+            exitflag = osqp_update_bounds(osqpData->work, l_vec, u_vec);
+            if(exitflag){
+                exitflag = 2;
+            }
         }
-        else if(!mxIsEmpty(l)){
-            osqp_update_lower_bound(osqpData->work,l_vec);
+        else if(!exitflag && !mxIsEmpty(l)){
+            exitflag = osqp_update_lower_bound(osqpData->work, l_vec);
+            if(exitflag){
+                exitflag = 3;
+            }
         }
-        else if(!mxIsEmpty(u)){
-            osqp_update_upper_bound(osqpData->work,u_vec);
+        else if(!exitflag && !mxIsEmpty(u)){
+            exitflag = osqp_update_upper_bound(osqpData->work, u_vec);
+            if(exitflag){
+                exitflag = 4;
+            }
         }
-        if(!mxIsEmpty(Px) && !mxIsEmpty(Ax)){
-            osqp_update_P_A(osqpData->work, Px_vec, Px_idx_vec, Px_n,
-                                          Ax_vec, Ax_idx_vec, Ax_n);
+        if(!exitflag && !mxIsEmpty(Px) && !mxIsEmpty(Ax)){
+            exitflag = osqp_update_P_A(osqpData->work, Px_vec, Px_idx_vec, Px_n,
+                                       Ax_vec, Ax_idx_vec, Ax_n);
+            if(exitflag){
+                exitflag = 5;
+            }
         }
-        else if(!mxIsEmpty(Px)){
-            osqp_update_P(osqpData->work, Px_vec, Px_idx_vec, Px_n);
+        else if(!exitflag && !mxIsEmpty(Px)){
+            exitflag = osqp_update_P(osqpData->work, Px_vec, Px_idx_vec, Px_n);
+            if(exitflag){
+                exitflag = 6;
+            }
         }
-        else if(!mxIsEmpty(Ax)){
-            osqp_update_A(osqpData->work, Ax_vec, Ax_idx_vec, Ax_n);
+        else if(!exitflag && !mxIsEmpty(Ax)){
+            exitflag = osqp_update_A(osqpData->work, Ax_vec, Ax_idx_vec, Ax_n);
+            if(exitflag){
+                exitflag = 7;
+            }
         }
 
         // Free vectors
@@ -425,6 +460,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         if(!mxIsEmpty(Ax)) mxFree(Ax_vec);
         if(!mxIsEmpty(Px_idx)) mxFree(Px_idx_vec);
         if(!mxIsEmpty(Ax_idx)) mxFree(Ax_idx_vec);
+
+        // Report errors (if any)
+        switch (exitflag) {
+            case 1:
+                mexErrMsgTxt("Linear cost update error!");
+            case 2:
+                mexErrMsgTxt("Bounds update error!");
+            case 3:
+                mexErrMsgTxt("Lower bound update error!");
+            case 4:
+                mexErrMsgTxt("Upper bound update error!");
+            case 5:
+                mexErrMsgTxt("Matrices P and A update error!");
+            case 6:
+                mexErrMsgTxt("Matrix P update error!");
+            case 7:
+                mexErrMsgTxt("Matrix A update error!");
+        }
 
         return;
     }
@@ -900,24 +953,28 @@ mxArray* copyLinsysSolverToMxStruct(OSQPWorkspace * work){
   int nnzA = data->A->p[data->A->n];
 
   // Create vectors
-  mxArray* Dinv      = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* P         = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* bp        = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* Pdiag_idx = mxCreateDoubleMatrix(Pdiag_n,1,mxREAL);
-  mxArray* PtoKKT    = mxCreateDoubleMatrix(nnzP,1,mxREAL);
-  mxArray* AtoKKT    = mxCreateDoubleMatrix(nnzA,1,mxREAL);
-  mxArray* rhotoKKT  = mxCreateDoubleMatrix(data->m,1,mxREAL);
-  mxArray* D         = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* etree     = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* Lnz       = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* iwork     = mxCreateDoubleMatrix(3*n,1,mxREAL);
-  mxArray* bwork     = mxCreateDoubleMatrix(n,1,mxREAL);
-  mxArray* fwork     = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* Dinv        = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* P           = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* bp          = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* sol         = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* rho_inv_vec = mxCreateDoubleMatrix(data->m,1,mxREAL);
+  mxArray* Pdiag_idx   = mxCreateDoubleMatrix(Pdiag_n,1,mxREAL);
+  mxArray* PtoKKT      = mxCreateDoubleMatrix(nnzP,1,mxREAL);
+  mxArray* AtoKKT      = mxCreateDoubleMatrix(nnzA,1,mxREAL);
+  mxArray* rhotoKKT    = mxCreateDoubleMatrix(data->m,1,mxREAL);
+  mxArray* D           = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* etree       = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* Lnz         = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* iwork       = mxCreateDoubleMatrix(3*n,1,mxREAL);
+  mxArray* bwork       = mxCreateDoubleMatrix(n,1,mxREAL);
+  mxArray* fwork       = mxCreateDoubleMatrix(n,1,mxREAL);
 
   // Populate vectors
   castToDoubleArr(linsys_solver->Dinv, mxGetPr(Dinv), n);
   castCintToDoubleArr(linsys_solver->P, mxGetPr(P), n);
   castToDoubleArr(linsys_solver->bp, mxGetPr(bp), n);
+  castToDoubleArr(linsys_solver->sol, mxGetPr(sol), n);
+  castToDoubleArr(linsys_solver->rho_inv_vec, mxGetPr(rho_inv_vec), data->m);
   castCintToDoubleArr(linsys_solver->Pdiag_idx, mxGetPr(Pdiag_idx), Pdiag_n);
   castCintToDoubleArr(linsys_solver->PtoKKT, mxGetPr(PtoKKT), nnzP);
   castCintToDoubleArr(linsys_solver->AtoKKT, mxGetPr(AtoKKT), nnzA);
@@ -934,22 +991,28 @@ mxArray* copyLinsysSolverToMxStruct(OSQPWorkspace * work){
   mxArray* KKT = copyCscMatrixToMxStruct(linsys_solver->KKT);
 
   //map the PRIV fields one at a time into mxArrays
-  mxSetField(mxPtr, 0, "L",         L);
-  mxSetField(mxPtr, 0, "Dinv",      Dinv);
-  mxSetField(mxPtr, 0, "P",         P);
-  mxSetField(mxPtr, 0, "bp",        bp);
-  mxSetField(mxPtr, 0, "Pdiag_idx", Pdiag_idx);
-  mxSetField(mxPtr, 0, "Pdiag_n",   mxCreateDoubleScalar(Pdiag_n));
-  mxSetField(mxPtr, 0, "KKT",       KKT);
-  mxSetField(mxPtr, 0, "PtoKKT",    PtoKKT);
-  mxSetField(mxPtr, 0, "AtoKKT",    AtoKKT);
-  mxSetField(mxPtr, 0, "rhotoKKT",  rhotoKKT);
-  mxSetField(mxPtr, 0, "D",         D);
-  mxSetField(mxPtr, 0, "etree",     etree);
-  mxSetField(mxPtr, 0, "Lnz",       Lnz);
-  mxSetField(mxPtr, 0, "iwork",     iwork);
-  mxSetField(mxPtr, 0, "bwork",     bwork);
-  mxSetField(mxPtr, 0, "fwork",     fwork);
+  mxSetField(mxPtr, 0, "L",           L);
+  mxSetField(mxPtr, 0, "Dinv",        Dinv);
+  mxSetField(mxPtr, 0, "P",           P);
+  mxSetField(mxPtr, 0, "bp",          bp);
+  mxSetField(mxPtr, 0, "sol",         sol);
+  mxSetField(mxPtr, 0, "rho_inv_vec", rho_inv_vec);
+  mxSetField(mxPtr, 0, "sigma",       mxCreateDoubleScalar(linsys_solver->sigma));
+  mxSetField(mxPtr, 0, "polish",      mxCreateDoubleScalar(linsys_solver->polish));
+  mxSetField(mxPtr, 0, "n",           mxCreateDoubleScalar(linsys_solver->n));
+  mxSetField(mxPtr, 0, "m",           mxCreateDoubleScalar(linsys_solver->m));
+  mxSetField(mxPtr, 0, "Pdiag_idx",   Pdiag_idx);
+  mxSetField(mxPtr, 0, "Pdiag_n",     mxCreateDoubleScalar(Pdiag_n));
+  mxSetField(mxPtr, 0, "KKT",         KKT);
+  mxSetField(mxPtr, 0, "PtoKKT",      PtoKKT);
+  mxSetField(mxPtr, 0, "AtoKKT",      AtoKKT);
+  mxSetField(mxPtr, 0, "rhotoKKT",    rhotoKKT);
+  mxSetField(mxPtr, 0, "D",           D);
+  mxSetField(mxPtr, 0, "etree",       etree);
+  mxSetField(mxPtr, 0, "Lnz",         Lnz);
+  mxSetField(mxPtr, 0, "iwork",       iwork);
+  mxSetField(mxPtr, 0, "bwork",       bwork);
+  mxSetField(mxPtr, 0, "fwork",       fwork);
 
   return mxPtr;
 }
@@ -1056,32 +1119,34 @@ void copyMxStructToSettings(const mxArray* mxPtr, OSQPSettings* settings){
 
   //map the OSQP_SETTINGS fields one at a time into mxArrays
   //matlab handles everything as a double
-  settings->rho                       = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
-  settings->sigma                     = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "sigma"));
-  settings->scaling                   = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "scaling"));
-  settings->adaptive_rho              = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho"));
-  settings->adaptive_rho_interval     = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_interval"));
-  settings->adaptive_rho_tolerance    = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_tolerance"));
-  settings->adaptive_rho_fraction   = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_fraction"));
-  settings->max_iter                  = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "max_iter"));
-  settings->eps_abs                   = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_abs"));
-  settings->eps_rel                   = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_rel"));
-  settings->eps_prim_inf              = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
-  settings->eps_dual_inf              = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
-  settings->alpha                     = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "alpha"));
-  settings->linsys_solver             = (enum linsys_solver_type) mxGetScalar(mxGetField(mxPtr, 0, "linsys_solver"));
-  settings->delta                     = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "delta"));
-  settings->polish                    = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "polish"));
-  settings->polish_refine_iter           = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "polish_refine_iter"));
-  settings->verbose                   = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "verbose"));
-  settings->scaled_termination           = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "scaled_termination"));
-  settings->check_termination           = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "check_termination"));
-  settings->warm_start                = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "warm_start"));
-  settings->time_limit                = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "time_limit"));
+  settings->rho                    = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
+  settings->sigma                  = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "sigma"));
+  settings->scaling                = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "scaling"));
+  settings->adaptive_rho           = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho"));
+  settings->adaptive_rho_interval  = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_interval"));
+  settings->adaptive_rho_tolerance = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_tolerance"));
+  settings->adaptive_rho_fraction  = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_fraction"));
+  settings->max_iter               = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "max_iter"));
+  settings->eps_abs                = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_abs"));
+  settings->eps_rel                = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_rel"));
+  settings->eps_prim_inf           = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
+  settings->eps_dual_inf           = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
+  settings->alpha                  = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "alpha"));
+  settings->linsys_solver          = (enum linsys_solver_type) (c_int) mxGetScalar(mxGetField(mxPtr, 0, "linsys_solver"));
+  settings->delta                  = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "delta"));
+  settings->polish                 = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "polish"));
+  settings->polish_refine_iter     = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "polish_refine_iter"));
+  settings->verbose                = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "verbose"));
+  settings->scaled_termination     = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "scaled_termination"));
+  settings->check_termination      = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "check_termination"));
+  settings->warm_start             = (c_int)mxGetScalar(mxGetField(mxPtr, 0, "warm_start"));
+  settings->time_limit             = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "time_limit"));
 
 }
 
 void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OsqpData* osqpData){
+
+  c_int exitflag;
 
   //This does basically the same job as copyMxStructToSettings which was used
   //during setup, but uses the provided update functions in osqp.h to update
@@ -1123,7 +1188,10 @@ void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OsqpData* osqpData){
   c_float rho_new = (c_float)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
   // Check if it has changed
   if (c_absval(rho_new - osqpData->work->settings->rho) > NEW_SETTINGS_TOL){
-      osqp_update_rho(osqpData->work, rho_new);
+      exitflag = osqp_update_rho(osqpData->work, rho_new);
+      if (exitflag){
+          mexErrMsgTxt("rho update error!");
+      }
   }
 
 
