@@ -139,7 +139,7 @@ void     change1To0Indexing(c_int *vecData, c_int numel);
 
 // Function handler
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
-{    
+{
     // Get the command string
     char cmd[64];
 	  if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
@@ -308,6 +308,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         const mxArray *Px_idx = prhs[2];
 
         int Px_n = mxGetScalar(prhs[3]);
+        if(Px_n == 0){
+            Px_n = (&workspace)->data->P->nzmax;
+        }
 
         // Copy vectors to ensure they are cast as c_float and c_int
         c_float *Px_vec;
@@ -317,10 +320,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
         if(!mxIsEmpty(Px_idx)){
             Px_idx_vec = copyDoubleToCintVector(mxGetPr(Px_idx), Px_n);
-            
+
             // Change indexing to match C 0-based one
             change1To0Indexing(Px_idx_vec, Px_n);
-            
+
         }
 
         if(!mxIsEmpty(Px)){
@@ -342,6 +345,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         const mxArray *Ax_idx = prhs[2];
 
         int Ax_n = mxGetScalar(prhs[3]);
+        if(Ax_n == 0){
+            Ax_n = (&workspace)->data->A->nzmax;
+        }
 
         // Copy vectors to ensure they are cast as c_float and c_int
         c_float *Ax_vec;
@@ -351,7 +357,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
         if(!mxIsEmpty(Ax_idx)){
             Ax_idx_vec = copyDoubleToCintVector(mxGetPr(Ax_idx), Ax_n);
-            
+
             // Change indexing to match C 0-based one
             change1To0Indexing(Ax_idx_vec, Ax_n);
         }
@@ -379,6 +385,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         int Px_n = mxGetScalar(prhs[3]);
         int Ax_n = mxGetScalar(prhs[6]);
 
+        if(Px_n == 0){
+            Px_n = (&workspace)->data->P->nzmax;
+        }
+        if(Ax_n == 0){
+            Ax_n = (&workspace)->data->A->nzmax;
+        }
+
         // Copy vectors to ensure they are cast as c_float and c_int
         c_float *Px_vec, *Ax_vec;
         c_int *Px_idx_vec = NULL;
@@ -388,7 +401,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
         if(!mxIsEmpty(Px_idx)){
             Px_idx_vec = copyDoubleToCintVector(mxGetPr(Px_idx), Px_n);
-            
+
             // Change indexing to match C 0-based one
             change1To0Indexing(Px_idx_vec, Px_n);
         }
@@ -397,7 +410,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
         if(!mxIsEmpty(Ax_idx)){
             Ax_idx_vec = copyDoubleToCintVector(mxGetPr(Ax_idx), Ax_n);
-            
+
             // Change indexing to match C 0-based one
             change1To0Indexing(Ax_idx_vec, Ax_n);
         }

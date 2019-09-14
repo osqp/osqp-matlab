@@ -97,6 +97,10 @@ classdef codegen_mat_tests < matlab.unittest.TestCase
             P_triu = triu(testCase.P);
             [~,~,Px] = find(P_triu(:));
             emosqp('update_P', Px, [], length(Px));
+            
+            % Try the update without specifying the length. This will update
+            % all indices (this is valid for emosqp only)
+            emosqp('update_P', Px, [], 0);
 
         end
 
@@ -136,6 +140,10 @@ classdef codegen_mat_tests < matlab.unittest.TestCase
             % Update matrix P to the original value
             [~,~,Ax] = find(testCase.A(:));
             emosqp('update_A', Ax, [], length(Ax));
+            
+            % Try the update without specifying the length. This will update
+            % all indices (this is valid for emosqp only)
+            emosqp('update_A', Ax, [], 0);
 
         end
         
@@ -237,6 +245,9 @@ classdef codegen_mat_tests < matlab.unittest.TestCase
             [~,~,Ax] = find(testCase.A(:));
             emosqp('update_P_A', Px, [], length(Px), Ax, [], length(Ax));
 
+            % Try the update without specifying the length. This will update
+            % all indices (this is valid for emosqp only)
+            emosqp('update_P_A', Px, [], 0, Ax, [], 0);
         end
         
     end
