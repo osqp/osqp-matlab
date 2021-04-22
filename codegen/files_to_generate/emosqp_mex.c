@@ -299,6 +299,34 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
+    // update warm_start
+    if (!strcmp("update_warm_start", cmd)) {
+
+        // Fill l, u
+        const mxArray *x = prhs[1];
+        const mxArray *y = prhs[2];
+
+        // Copy vectors to ensure they are cast as c_float
+        c_float *x_vec;
+        c_float *y_vec;
+        if(!mxIsEmpty(x)){
+            x_vec = copyToCfloatVector(mxGetPr(x), (&workspace)->data->m);
+        }
+        if(!mxIsEmpty(y)){
+            y_vec = copyToCfloatVector(mxGetPr(y), (&workspace)->data->m);
+        }
+
+        if(!mxIsEmpty(y)){
+            osqp_warm_start(&workspace, x_vec, y_vec);
+        }
+
+        // Free
+        if(!mxIsEmpty(x)) mxFree(x_vec);
+        if(!mxIsEmpty(y)) mxFree(y_vec);
+
+        return;
+    }
+
     #if EMBEDDED != 1
     // update matrix P
     if (!strcmp("update_P", cmd)) {
