@@ -29,4 +29,5 @@ jobs:
       - name: Publish Test Results
         uses: mikepenz/action-junit-report@v2
         with:
+          check_name: Linux test results
           report_paths: 'test-results/**/*.xml'
