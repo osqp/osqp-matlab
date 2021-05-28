@@ -40,5 +40,6 @@ jobs:
       - name: Publish Test Results
         uses: mikepenz/action-junit-report@v2
         with:
+          fail_on_failure: true
           check_name: Test results
           report_paths: 'test-results/**/*.xml'
