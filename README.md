@@ -15,4 +15,4 @@ where `x in R^n` is the optimization variable. The objective function is defined
 
 
 ## Documentation
-The interface is documented [here](https://osqp.org/).
+  The installation procedure is documented in [https://osqp.org/docs/get_started/matlab.html](https://osqp.org/docs/get_started/matlab.html), while the interface is documented in [https://osqp.org/docs/interfaces/matlab.html](https://osqp.org/docs/interfaces/matlab.html).
