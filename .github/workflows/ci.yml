@@ -4,7 +4,13 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -29,5 +35,5 @@ jobs:
       - name: Publish Test Results
         uses: mikepenz/action-junit-report@v2
         with:
-          check_name: Linux test results
+          check_name: ${{ matrix.os }} test results
           report_paths: 'test-results/**/*.xml'
