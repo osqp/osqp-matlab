@@ -20,6 +20,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      - name: Setup Envvars
+        run: |
+          echo "OSQP_VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+
       - name: Check out repository
         uses: actions/checkout@v2
         with:
@@ -31,9 +36,9 @@ jobs:
       - name: Generate binary
         uses: matlab-actions/run-command@v1
         with:
-          command: cd package, package_osqp
+          command: cd package, package_osqp('${{env.OSQP_VERSION}}')
 
       - name: Release binary
         uses: softprops/action-gh-release@v1
         with:
-          files: package/osqp-0.6.2-matlab-linux64.tar.gz
+          files: package/osqp-matlab-linux64.tar.gz

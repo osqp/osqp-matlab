@@ -1,4 +1,4 @@
-function package_osqp()
+function package_osqp(version)
 %   Create OSQP matlab interface package
 
 % Get operative system
@@ -20,10 +20,13 @@ cd(osqp_dir_matlab);
 make_osqp purge;
 make_osqp;
 
-% Get OSQP version
-s = osqp;
-version = s.version;
-clear s;
+if nargin < 1
+  % Get OSQP version
+  s = osqp;
+  version = s.version;
+  clear s;
+end
+
 cd(cur_dir)
 
 
@@ -33,6 +36,7 @@ fprintf('--------------------------------\n');
 
 % Get package name
 package_name = sprintf('osqp-%s-matlab-%s64', version, platform);
+package_name_no_version = sprintf('osqp-matlab-%s64', platform);
 
 % Create package directory
 fprintf('Creating package directory %s/...\n', package_name);
@@ -73,5 +77,5 @@ end
 fprintf('[done]\n');
 
 
-fprintf('Compressing files to %s.tar.gz\n', package_name);
-tar(sprintf('%s.tar.gz', package_name), package_name);
+fprintf('Compressing files to %s.tar.gz\n', package_name_no_version);
+tar(sprintf('%s.tar.gz', package_name_no_version), package_name);
