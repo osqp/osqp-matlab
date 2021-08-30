@@ -1,0 +1,45 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    # As of August 30, 2021 Matlab isn't able to be used on Windows or Linux on GitHub shared runners
+    # (it errors saying the dependencies aren't available on those platforms). Instead we can only
+    # test on ubuntu-latest. The matrix below is preserved here in case Matlab support is added
+    # to those other platforms.
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        os: [ubuntu-latest, macos-latest, windows-latest]
+
+#    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Install MATLAB
+        uses: matlab-actions/setup-matlab@v1
+
+      - name: Build OSQP interface
+        uses: matlab-actions/run-command@v1
+        with:
+          command: make_osqp
+
+      - name: Run tests
+        uses: matlab-actions/run-tests@v1
+        with:
+          source-folder: ./
+          select-by-folder: unittests
+          test-results-junit: test-results/results.xml
+
+      - name: Publish Test Results
+        uses: mikepenz/action-junit-report@v2
+        with:
+          fail_on_failure: true
+          check_name: Test results
+          report_paths: 'test-results/**/*.xml'
