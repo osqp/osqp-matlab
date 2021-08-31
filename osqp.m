@@ -554,7 +554,7 @@ classdef osqp < handle
             % Rename the mex file
             old_mexfile = ['emosqp_mex.', mexext];
             new_mexfile = [p.Results.mexname, '.', mexext];
-            movefile(old_mexfile, new_mexfile);
+            movefile(old_mexfile, new_mexfile, 'f');
 
         end
 
