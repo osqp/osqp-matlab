@@ -68,7 +68,7 @@ end
 fprintf('Compiling and linking osqpmex...');
 
 % Compile command
-cmd = sprintf('%s %s %s %s %s', mex_cmd, mexoptflags, inc_dir, mex_cfile, cfiles);
+cmd = sprintf('%s %s %s "%s" %s', mex_cmd, mexoptflags, inc_dir, mex_cfile, cfiles);
 
 % Compile
 eval(cmd);
