@@ -1,10 +1,10 @@
-name: Test OSQP Matlab Interface
+name: Test
 
 on: [push, pull_request]
 
 jobs:
   build:
-    # As of May 28, 2021 Matlab isn't able to be used on Windows or Linux on GitHub shared runners
+    # As of August 30, 2021 Matlab isn't able to be used on Windows or macOS on GitHub shared runners
     # (it errors saying the dependencies aren't available on those platforms). Instead we can only
     # test on ubuntu-latest. The matrix below is preserved here in case Matlab support is added
     # to those other platforms.
