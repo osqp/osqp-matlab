@@ -453,13 +453,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Free vectors
-        if(!mxIsEmpty(q)) mxFree(q_vec);
-        if(!mxIsEmpty(l)) mxFree(l_vec);
-        if(!mxIsEmpty(u)) mxFree(u_vec);
-        if(!mxIsEmpty(Px)) mxFree(Px_vec);
-        if(!mxIsEmpty(Ax)) mxFree(Ax_vec);
-        if(!mxIsEmpty(Px_idx)) mxFree(Px_idx_vec);
-        if(!mxIsEmpty(Ax_idx)) mxFree(Ax_idx_vec);
+        if(!mxIsEmpty(q)) c_free(q_vec);
+        if(!mxIsEmpty(l)) c_free(l_vec);
+        if(!mxIsEmpty(u)) c_free(u_vec);
+        if(!mxIsEmpty(Px)) c_free(Px_vec);
+        if(!mxIsEmpty(Ax)) c_free(Ax_vec);
+        if(!mxIsEmpty(Px_idx)) c_free(Px_idx_vec);
+        if(!mxIsEmpty(Ax_idx)) c_free(Ax_idx_vec);
 
         // Report errors (if any)
         switch (exitflag) {
@@ -513,8 +513,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         osqp_warm_start(osqpData->work, x_vec, y_vec);
 
         // Free vectors
-        if(!mxIsEmpty(x)) mxFree(x_vec);
-        if(!mxIsEmpty(y)) mxFree(y_vec);
+        if(!mxIsEmpty(x)) c_free(x_vec);
+        if(!mxIsEmpty(y)) c_free(y_vec);
 
         return;
     }
@@ -544,7 +544,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         osqp_warm_start_x(osqpData->work, x_vec);
 
         // Free vectors
-        if(!mxIsEmpty(x)) mxFree(x_vec);
+        if(!mxIsEmpty(x)) c_free(x_vec);
 
         return;
     }
@@ -574,7 +574,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         osqp_warm_start_y(osqpData->work, y_vec);
 
         // Free vectors
-        if(!mxIsEmpty(y)) mxFree(y_vec);
+        if(!mxIsEmpty(y)) c_free(y_vec);
 
         return;
     }
