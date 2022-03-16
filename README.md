@@ -1,6 +1,6 @@
 # Matlab interface for OSQP
 
-[![Matlab Interface Tests](https://github.com/oxfordcontrol/osqp-matlab/actions/workflows/ci.yml/badge.svg)](https://github.com/oxfordcontrol/osqp-matlab/actions/workflows/ci.yml)
+[![Test](https://github.com/osqp/osqp-matlab/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/osqp/osqp-matlab/actions/workflows/main.yml)
 
 Matlab wrapper for [OSQP](https://osqp.org/): the Operator Splitting QP Solver.
 

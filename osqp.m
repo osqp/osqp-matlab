@@ -1,5 +1,5 @@
 classdef osqp < handle
-    % osqp interface class for OSQP solver v0.6.2
+    % osqp interface class for OSQP solver
     % This class provides a complete interface to the C implementation
     % of the OSQP solver.
     %
@@ -530,6 +530,13 @@ classdef osqp < handle
 
             % Create project
             if ~isempty(project_type)
+	    
+                % Extend path for CMake mac (via Homebrew)
+                PATH = getenv('PATH');
+                if ((ismac) && (isempty(strfind(PATH, '/usr/local/bin'))))
+                    setenv('PATH', [PATH ':/usr/local/bin']);
+                end
+    
                 fprintf('Creating project...\t\t\t\t\t\t\t\t');
                 orig_dir = pwd;
                 cd(target_dir);

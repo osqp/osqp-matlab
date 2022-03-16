@@ -1,4 +1,4 @@
-function package_osqp()
+function package_osqp(version)
 %   Create OSQP matlab interface package
 
 % Get operative system
@@ -20,10 +20,13 @@ cd(osqp_dir_matlab);
 make_osqp purge;
 make_osqp;
 
-% Get OSQP version
-s = osqp;
-version = s.version;
-clear s;
+if nargin < 1
+  % Get OSQP version
+  s = osqp;
+  version = s.version;
+  clear s;
+end
+
 cd(cur_dir)
 
 
@@ -33,6 +36,7 @@ fprintf('--------------------------------\n');
 
 % Get package name
 package_name = sprintf('osqp-%s-matlab-%s64', version, platform);
+package_name_no_version = sprintf('osqp-matlab-%s64', platform);
 
 % Create package directory
 fprintf('Creating package directory %s/...\n', package_name);
@@ -73,83 +77,5 @@ end
 fprintf('[done]\n');
 
 
-% Compress tar.gz archive
-compress_dir(package_name);
-
-% Upload to github
-fprintf('Uploading to Bintray.com v%s ...\n', version);
-bintray_api_key = input('Bintray API key: ', 's');
-
-interface_upload = input('Do you want to upload the interface archive? [y/n] ', 's');
-if interface_upload == 'y'
-    fprintf('Uploading %s.tar.gz file\n', package_name);
-
-    % Create command
-    command = sprintf('curl');
-    command = sprintf('%s -T %s', command, sprintf('%s.tar.gz', package_name));
-    command = sprintf('%s -ubstellato:%s', command, bintray_api_key);
-    command = sprintf('%s -H "X-Bintray-Package:OSQP" -H "X-Bintray-Override: 1" -H "X-Bintray-Version:%s"', command, sprintf('%s', version));
-    command = sprintf('%s https://api.bintray.com/content/bstellato/generic/OSQP/%s/', command, sprintf('%s', version));
-
-    % Run command
-    [status, output] = system(command);
-    if(status)
-        fprintf('\n');
-        disp(output);
-        error('Error uploading binaries');
-    end
-
-end
-
-% Upload install_osqp.m
-install_osqp_upload = input('Do you also want to upload the install_osqp.m file? [y/n] ', 's');
-if install_osqp_upload == 'y'
-    fprintf('Uploading install_osqp.m file\n');
-
-
-    % Create command
-    command = sprintf('curl');
-    command = sprintf('%s -T %s', command, 'install_osqp.m');
-    command = sprintf('%s -ubstellato:%s', command, bintray_api_key);
-    command = sprintf('%s -H "X-Bintray-Package:OSQP" -H "X-Bintray-Override: 1" -H "X-Bintray-Version:%s"', command, sprintf('%s', version));
-    command = sprintf('%s https://api.bintray.com/content/bstellato/generic/OSQP/%s/', command, sprintf('%s', version));
-
-    % Run command
-    [status, output] = system(command);
-    if(status)
-        fprintf('\n');
-        disp(output);
-        error('Error uploading binaries');
-    end
-
-end
-
-
-
-fprintf('Publishing binaries\n');
-command = sprintf('curl -X POST');
-command = sprintf('%s -ubstellato:%s', command, bintray_api_key);
-command = sprintf('%s https://api.bintray.com/content/bstellato/generic/OSQP/%s/publish', command, sprintf('%s', version));
-
-% Run command
-[status, output] = system(command);
-if(status)
-    fprintf('\n');
-    disp(output);
-    error('Error publishing binaries');
-end
-
-
-
-
-end
-
-
-function compress_dir(directory)
-% COMPRESS_DIR - Compress directory "directory" to tar.gz
-
-fprintf('Compressing files to %s.tar.gz\n', directory);
-
-tar(sprintf('%s.tar.gz', directory), directory);
-
-end
+fprintf('Compressing files to %s.tar.gz\n', package_name_no_version);
+tar(sprintf('%s.tar.gz', package_name_no_version), package_name);
