@@ -4,17 +4,18 @@ on: [push, pull_request]
 
 jobs:
   build:
-    # As of August 30, 2021 Matlab isn't able to be used on Windows or macOS on GitHub shared runners
-    # (it errors saying the dependencies aren't available on those platforms). Instead we can only
-    # test on ubuntu-latest. The matrix below is preserved here in case Matlab support is added
-    # to those other platforms.
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        os: [ubuntu-latest, macos-latest, windows-latest]
+    # As of January 19, 2022, the MATLAB action has undocumented support for Windows and MacOS shared runners
+    # (https://github.com/matlab-actions/setup-matlab/issues/18#issuecomment-1006990188). This is in version
+    # 1.1.0 of the action, and only provides the bare Matlab and Simulink products with no toolboxes.
+    #
+    # Lock the Windows version to 2019 because the 2022 image doesn't include a supported compiler for the
+    # available MATLAB version (https://github.com/matlab-actions/setup-matlab/issues/29#issuecomment-1048390901).
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
 
-#    runs-on: ${{ matrix.os }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Check out repository
@@ -41,5 +42,5 @@ jobs:
         uses: mikepenz/action-junit-report@v2
         with:
           fail_on_failure: true
-          check_name: Test results
+          check_name: Test results - ${{ matrix.os }}
           report_paths: 'test-results/**/*.xml'
