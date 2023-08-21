@@ -111,7 +111,7 @@ end
 
 % Set library extension
 lib_ext = '.a';
-lib_name = sprintf('libosqp%s', lib_ext);
+lib_name = sprintf('libosqpstatic%s', lib_ext);
 
 
 % Set osqp directory and osqp_build directory
@@ -119,12 +119,14 @@ current_dir = pwd;
 [makefile_path,~,~] = fileparts(which('make_osqp.m'));
 osqp_dir = fullfile(makefile_path, 'osqp_sources');
 osqp_build_dir = fullfile(osqp_dir, 'build');
-qdldl_dir = fullfile(osqp_dir, 'lin_sys', 'direct', 'qdldl');
+qdldl_dir = fullfile(osqp_dir, 'algebra', '_common', 'lin_sys', 'qdldl');
 cg_sources_dir = fullfile('.', 'codegen', 'sources');
 
 % Include directory
 inc_dir = [
-    fullfile(sprintf(' -I%s', osqp_dir), 'include'), ...
+    fullfile(sprintf(' -I%s', osqp_dir), 'include', 'public'), ...
+    fullfile(sprintf(' -I%s', osqp_dir), 'include', 'private'), ...
+    fullfile(sprintf(' -I%s', osqp_dir), 'build', 'include', 'public'), ...
     sprintf(' -I%s', qdldl_dir), ...
     fullfile(sprintf(' -I%s', qdldl_dir), 'qdldl_sources', 'include')];
 

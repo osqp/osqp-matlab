@@ -1,6 +1,7 @@
 #ifndef __OSQP_MEX_HPP__
 #define __OSQP_MEX_HPP__
 #include "mex.h"
+#include "error.h"
 #include <stdint.h>
 #include <string>
 #include <cstring>
