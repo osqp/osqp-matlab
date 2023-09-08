@@ -121,7 +121,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	  if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
 		mexErrMsgTxt("First input should be a command string less than 64 characters long.");
     // new object
-    //std::cout << "cmd = " << cmd << std::endl; //DELETE HERE
     if (!strcmp("new", cmd)) {
         // Check parameters
         if (nlhs != 1){
@@ -141,7 +140,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     if(mxGetString(prhs[1], stat_string, sizeof(stat_string))){
         // If we are dealing with non-static methods, get the class instance pointer from the second input
-        //OsqpData* osqpData;  // OSQP data identifier //DELETE HERE
         osqpData = convertMat2Ptr<OsqpData>(prhs[1]);
     } else {
         if (strcmp("static", stat_string)){
@@ -166,8 +164,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // report the current settings
     if (!strcmp("current_settings", cmd)) {
       //throw an error if this is called before solver is configured
-      if(!osqpData->solver){
-        mexErrMsgTxt("Solver is uninitialized.  No settings have been configured.");
+      if(!osqpData->solver) mexErrMsgTxt("Solver is uninitialized.  No settings have been configured.");
+      if(!osqpData->solver->settings){
+        mexErrMsgTxt("Solver settings is uninitialized.  No settings have been configured.");
       }
       //report the current settings
       plhs[0] = copySettingsToMxStruct(osqpData->solver->settings);
@@ -818,7 +817,6 @@ void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OSQPSolver* osqpSolver){
   //during setup, but uses the provided update functions in osqp.h to update
   //settings in the osqp workspace.  Protects against bad parameter writes
   //or future modifications to updated settings handling
-
   osqp_update_max_iter(osqpSolver,
     (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "max_iter")));
   osqp_update_eps_abs(osqpSolver,
@@ -842,7 +840,7 @@ void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OSQPSolver* osqpSolver){
   osqp_update_check_termination(osqpSolver,
     (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "check_termination")));
   osqp_update_warm_start(osqpSolver,
-    (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "warm_start")));
+    (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "warm_starting")));
 #ifdef PROFILING    
   osqp_update_time_limit(osqpSolver,
     (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "time_limit")));
