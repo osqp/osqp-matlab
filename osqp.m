@@ -647,10 +647,12 @@ end
 function [linsys_solver_string] = linsys_solver_to_string(linsys_solver)
 % Convert linear systme solver integer to stringh
 switch linsys_solver
-    case osqp.constant('QDLDL_SOLVER')
-        linsys_solver_string = 'qdldl';
-    case osqp.constant('MKL_PARDISO_SOLVER')
-        linsys_solver_string = 'mkl pardiso';
+    case osqp.constant('OSQP_UNKNOWN_SOLVER')
+        linsys_solver_string = 'unknown solver';
+    case osqp.constant('OSQP_DIRECT_SOLVER')
+        linsys_solver_string = 'direct solver';
+    case osqp.constant('OSQP_INDIRECT_SOLVER')
+        linsys_solver_string = 'indirect solver';
     otherwise
         error('Unrecognized linear system solver.');
 end
@@ -661,16 +663,18 @@ end
 function [linsys_solver] = string_to_linsys_solver(linsys_solver_string)
 linsys_solver_string = lower(linsys_solver_string);
 switch linsys_solver_string
-    case 'qdldl'
-        linsys_solver = osqp.constant('QDLDL_SOLVER');
-    case 'mkl pardiso'
-        linsys_solver = osqp.constant('MKL_PARDISO_SOLVER');
+    case 'unknown solver'
+        linsys_solver = osqp.constant('OSQP_UNKNOWN_SOLVER');
+    case 'direct solver'
+        linsys_solver = osqp.constant('OSQP_DIRECT_SOLVER');
+    case 'indirect solver'
+        linsys_solver = osqp.constant('OSQP_INDIRECT_SOLVER');
     % Default solver: QDLDL
     case ''
-        linsys_solver = osqp.constant('QDLDL_SOLVER');
+        linsys_solver = osqp.constant('OSQP_DIRECT_SOLVER');
     otherwise
-        warning('Linear system solver not recognized. Using default solver QDLDL.')
-        linsys_solver = osqp.constant('QDLDL_SOLVER');
+        warning('Linear system solver not recognized. Using default solver OSQP_DIRECT_SOLVER.')
+        linsys_solver = osqp.constant('OSQP_DIRECT_SOLVER');
 end
 end
 

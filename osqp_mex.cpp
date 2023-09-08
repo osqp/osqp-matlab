@@ -4,6 +4,10 @@
 #include "osqp.h"
 //#include "ctrlc.h"             // Needed for interrupt
 #include "qdldl_interface.h"   // To extract workspace for codegen
+//#include <string> //DELETE HERE
+//#include <iostream> //DELETE HERE
+//using std::cout; //DELETE HERE
+//using std::endl; //DELETE HERE
 
 //c_int is replaced with OSQPInt
 //c_float is replaced with OSQPFloat
@@ -22,11 +26,14 @@ const char* OSQP_INFO_FIELDS[] = {"status",         //char*
                                   "iter",           //OSQPInt
                                   "rho_updates",    //OSQPInt
                                   "rho_estimate",   //OSQPFloat
+                                  #ifdef PROFILING
                                   "setup_time",     //OSQPFloat
                                   "solve_time",     //OSQPFloat
                                   "update_time",    //OSQPFloat
                                   "polish_time",    //OSQPFloat
-                                  "run_time"};      //OSQPFloat
+                                  "run_time",       //OSQPFloat
+                                  #endif /* ifdef PROFILING */
+                                  };      
 
 const char* OSQP_SETTINGS_FIELDS[] = {"device",                 //OSQPInt
                                       "linsys_solver",          //enum osqp_linsys_solver_type
@@ -55,7 +62,8 @@ const char* OSQP_SETTINGS_FIELDS[] = {"device",                 //OSQPInt
                                       "check_termination",      //OSQPInt
                                       "time_limit",             //OSQPFloat
                                       "delta",                  //OSQPFloat
-                                      "polish_refine_iter"};    //OSQPInt
+                                      "polish_refine_iter",     //OSQPInt
+                                      };    
 
 #define NEW_SETTINGS_TOL (1e-10)
 
@@ -63,14 +71,12 @@ const char* OSQP_SETTINGS_FIELDS[] = {"device",                 //OSQPInt
 class OsqpData
 {
 public:
-  OsqpData(){
-    work = NULL;
-  }
-  OSQPWorkspace     * work;     // Workspace
+  OsqpData() : solver(NULL){}
+  OSQPSolver     * solver;
 };
 
 // internal utility functions
-void           initializeOSQPSolver(OSQPSolver* osqpSolver);
+OSQPSolver*    initializeOSQPSolver();
 void           castToDoubleArr(OSQPFloat *arr, double* arr_out, OSQPInt len);
 void           setToNaN(double* arr_out, OSQPInt len);
 void           copyMxStructToSettings(const mxArray*, OSQPSettings*);
@@ -101,8 +107,8 @@ OSQPInt        osqp_update_time_limit(OSQPSolver* osqpSolver, OSQPFloat time_lim
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {   
-    OSQPSolver* osqpSolver;
-    initializeOSQPSolver(osqpSolver);
+    OsqpData* osqpData;
+    //OSQPSolver* osqpSolver = NULL;
 
     // Exitflag
     OSQPInt exitflag = 0;
@@ -114,27 +120,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     char cmd[64];
 	  if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
 		mexErrMsgTxt("First input should be a command string less than 64 characters long.");
-
     // new object
+    //std::cout << "cmd = " << cmd << std::endl; //DELETE HERE
     if (!strcmp("new", cmd)) {
         // Check parameters
         if (nlhs != 1){
             mexErrMsgTxt("New: One output expected.");
           }
         // Return a handle to a new C++ wrapper instance
-        plhs[0] = convertPtr2Mat<OsqpData>(new OsqpData);
+        osqpData = new OsqpData;
+        //osqpData->solver = initializeOSQPSolver();
+        osqpData->solver = NULL;
+        plhs[0] = convertPtr2Mat<OsqpData>(osqpData);
         return;
     }
 
     // Check for a second input, which should be the class instance handle or string 'static'
-        if (nrhs < 2)
+    if (nrhs < 2)
     		mexErrMsgTxt("Second input should be a class instance handle or the string 'static'.");
 
     if(mxGetString(prhs[1], stat_string, sizeof(stat_string))){
         // If we are dealing with non-static methods, get the class instance pointer from the second input
-        OsqpData* osqpData;  // OSQP data identifier
+        //OsqpData* osqpData;  // OSQP data identifier //DELETE HERE
         osqpData = convertMat2Ptr<OsqpData>(prhs[1]);
-        osqpSolver->work = osqpData->work;
     } else {
         if (strcmp("static", stat_string)){
             mexErrMsgTxt("Second argument for static functions is string 'static'");
@@ -143,11 +151,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // delete the object and its data
     if (!strcmp("delete", cmd)) {
-
-        osqp_cleanup(osqpSolver);
-
-        //clean up the handle object
+        
+        osqp_cleanup(osqpData->solver);
         destroyObject<OsqpData>(prhs[1]);
+        //clean up the handle object
+        //if (prhs[1]) destroyObject<OSQPSolver>(prhs[1]);
+        //osqp_cleanup(osqpSolver);
         // Warn if other commands were ignored
         if (nlhs != 0 || nrhs != 2)
             mexWarnMsgTxt("Delete: Unexpected arguments ignored.");
@@ -156,34 +165,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // report the current settings
     if (!strcmp("current_settings", cmd)) {
-
       //throw an error if this is called before solver is configured
-      if(!osqpSolver->work){
+      if(!osqpData->solver){
         mexErrMsgTxt("Solver is uninitialized.  No settings have been configured.");
       }
       //report the current settings
-      plhs[0] = copySettingsToMxStruct(osqpSolver->settings);
+      plhs[0] = copySettingsToMxStruct(osqpData->solver->settings);
       return;
     }
 
     // write_settings
     if (!strcmp("update_settings", cmd)) {
-
       //overwrite the current settings.  Mex function is responsible
       //for disallowing overwrite of selected settings after initialization,
       //and for all error checking
       //throw an error if this is called before solver is configured
-      if(!osqpSolver->work){
+      if(!osqpData->solver){
         mexErrMsgTxt("Solver is uninitialized.  No settings have been configured.");
       }
 
-      copyUpdatedSettingsToWork(prhs[2],osqpSolver);
+      copyUpdatedSettingsToWork(prhs[2],osqpData->solver);
       return;
     }
 
     // report the default settings
     if (!strcmp("default_settings", cmd)) {
-
         // Warn if other commands were ignored
         if (nrhs > 2)
             mexWarnMsgTxt("Default settings: unexpected number of arguments.");
@@ -203,10 +209,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!strcmp("setup", cmd)) {
 
         //throw an error if this is called more than once
-        if(osqpSolver->work){
+        if(osqpData->solver){
           mexErrMsgTxt("Solver is already initialized with problem data.");
         }
-
         //Create data and settings containers
         OSQPSettings* settings = (OSQPSettings *)mxCalloc(1,sizeof(OSQPSettings));
 
@@ -234,14 +239,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         OSQPInt * Pp = (OSQPInt*)copyToCintVector(mxGetJc(P), dataN + 1);
         OSQPInt * Pi = (OSQPInt*)copyToCintVector(mxGetIr(P), Pp[dataN]);
         OSQPFloat * Px = copyToOSQPFloatVector(mxGetPr(P), Pp[dataN]);
-        OSQPCscMatrix* dataP = NULL;
+        OSQPCscMatrix* dataP = new OSQPCscMatrix;
         csc_set_data(dataP, dataN, dataN, Pp[dataN], Px, Pi, Pp);
 
         // Matrix A: nnz = A->p[n]
         OSQPInt* Ap = (OSQPInt*)copyToCintVector(mxGetJc(A), dataN + 1);
         OSQPInt* Ai = (OSQPInt*)copyToCintVector(mxGetIr(A), Ap[dataN]);
         OSQPFloat * Ax = copyToOSQPFloatVector(mxGetPr(A), Ap[dataN]);
-        OSQPCscMatrix* dataA = NULL;
+        OSQPCscMatrix* dataA = new OSQPCscMatrix;
         csc_set_data(dataA, dataM, dataN, Ap[dataN], Ax, Ai, Ap);
 
         // Create Settings
@@ -256,7 +261,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         // Setup workspace
         //exitflag = osqp_setup(&(osqpData->work), data, settings);
-        exitflag = osqp_setup(&osqpSolver, dataP, dataQ, dataA, dataL, dataU, dataM, dataN, settings);
+        exitflag = osqp_setup(&osqpData->solver, dataP, dataQ, dataA, dataL, dataU, dataM, dataN, settings);
 
         //cleanup temporary structures
         // Data
@@ -266,13 +271,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         if (Ax)       c_free(Ax);
         if (Ai)       c_free(Ai);
         if (Ap)       c_free(Ap);
-        //if (data->A)  c_free(data->A);
-        //if (data)     mxFree(data);
         if (dataQ)    c_free(dataQ);
         if (dataL)    c_free(dataL);
         if (dataU)    c_free(dataU);
-        if (dataP)    freeCscMatrix(dataP);
-        if (dataA)    freeCscMatrix(dataA);
+        if (dataP)    c_free(dataP);
+        if (dataA)    c_free(dataA);
         // Settings
         if (settings) mxFree(settings);
 
@@ -289,12 +292,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!strcmp("get_dimensions", cmd)) {
 
         //throw an error if this is called before solver is configured
-        if(!osqpSolver->work){
+        if(!osqpData->solver){
           mexErrMsgTxt("Solver has not been initialized.");
         }
 
-        plhs[0] = mxCreateDoubleScalar(osqpSolver->work->data->n);
-        plhs[1] = mxCreateDoubleScalar(osqpSolver->work->data->m);
+        plhs[0] = mxCreateDoubleScalar(osqpData->solver->work->data->n);
+        plhs[1] = mxCreateDoubleScalar(osqpData->solver->work->data->m);
 
         return;
     }
@@ -311,7 +314,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!strcmp("update", cmd)) {
 
         //throw an error if this is called before solver is configured
-        if(!osqpSolver->work){
+        if(!osqpData->solver){
           mexErrMsgTxt("Solver has not been initialized.");
         }
 
@@ -329,24 +332,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         Ax_n = mxGetScalar(prhs[10]);
 
         // Copy vectors to ensure they are cast as OSQPFloat
-        OSQPFloat *q_vec  = NULL;
-        OSQPFloat *l_vec  = NULL;
-        OSQPFloat *u_vec  = NULL;
-        OSQPFloat *Px_vec = NULL;
-        OSQPFloat *Ax_vec = NULL;
+        OSQPFloat *q_vec      = NULL;
+        OSQPFloat *l_vec      = NULL;
+        OSQPFloat *u_vec      = NULL;
+        OSQPFloat *Px_vec     = NULL;
+        OSQPFloat *Ax_vec     = NULL;
         OSQPInt *Px_idx_vec   = NULL;
         OSQPInt *Ax_idx_vec   = NULL;
         if(!mxIsEmpty(q)){
             q_vec = copyToOSQPFloatVector(mxGetPr(q),
-                                       osqpSolver->work->data->n);
+                                       osqpData->solver->work->data->n);
         }
         if(!mxIsEmpty(l)){
             l_vec = copyToOSQPFloatVector(mxGetPr(l),
-                                       osqpSolver->work->data->m);
+                                       osqpData->solver->work->data->m);
         }
         if(!mxIsEmpty(u)){
             u_vec = copyToOSQPFloatVector(mxGetPr(u),
-                                       osqpSolver->work->data->m);
+                                       osqpData->solver->work->data->m);
         }
         if(!mxIsEmpty(Px)){
             Px_vec = copyToOSQPFloatVector(mxGetPr(Px), Px_n);
@@ -362,12 +365,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         if (!exitflag && (!mxIsEmpty(q) || !mxIsEmpty(l) || !mxIsEmpty(u))) {
-          exitflag = osqp_update_data_vec(osqpSolver, q_vec, l_vec, u_vec);
+          exitflag = osqp_update_data_vec(osqpData->solver, q_vec, l_vec, u_vec);
           if (exitflag) exitflag=1; 
         }
    
         if (!exitflag && (!mxIsEmpty(Px) || !mxIsEmpty(Ax))) {
-          exitflag = osqp_update_data_mat(osqpSolver, Px_vec, Px_idx_vec, Px_n, Ax_vec, Ax_idx_vec, Ax_n);
+          exitflag = osqp_update_data_mat(osqpData->solver, Px_vec, Px_idx_vec, Px_n, Ax_vec, Ax_idx_vec, Ax_n);
           if (exitflag) exitflag=2;
         }
                                       
@@ -395,7 +398,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!strcmp("warm_start", cmd) || !strcmp("warm_start_x", cmd) || !strcmp("warm_start_y", cmd)) {
       
       //throw an error if this is called before solver is configured
-      if(!osqpSolver->work){
+      if(!osqpData->solver){
           mexErrMsgTxt("Solver has not been initialized.");
         }
 
@@ -422,15 +425,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       if(!mxIsEmpty(x)){
           x_vec = copyToOSQPFloatVector(mxGetPr(x),
-                                      osqpSolver->work->data->n);
+                                      osqpData->solver->work->data->n);
       }
       if(!mxIsEmpty(y)){
           y_vec = copyToOSQPFloatVector(mxGetPr(y),
-                                      osqpSolver->work->data->m);
+                                      osqpData->solver->work->data->m);
       }
 
       // Warm start x and y
-      osqp_warm_start(osqpSolver, x_vec, y_vec);
+      osqp_warm_start(osqpData->solver, x_vec, y_vec);
 
       // Free vectors
       if(!x_vec) c_free(x_vec);
@@ -444,74 +447,74 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         if (nlhs != 5 || nrhs != 2){
           mexErrMsgTxt("Solve : wrong number of inputs / outputs");
         }
-        if(!osqpSolver->work){
+        if(!osqpData->solver){
             mexErrMsgTxt("No problem data has been given.");
         }
         // solve the problem
-        osqp_solve(osqpSolver);
+        osqp_solve(osqpData->solver);
 
 
         // Allocate space for solution
         // primal variables
-        plhs[0] = mxCreateDoubleMatrix(osqpSolver->work->data->n,1,mxREAL);
+        plhs[0] = mxCreateDoubleMatrix(osqpData->solver->work->data->n,1,mxREAL);
         // dual variables
-        plhs[1] = mxCreateDoubleMatrix(osqpSolver->work->data->m,1,mxREAL);
+        plhs[1] = mxCreateDoubleMatrix(osqpData->solver->work->data->m,1,mxREAL);
         // primal infeasibility certificate
-        plhs[2] = mxCreateDoubleMatrix(osqpSolver->work->data->m,1,mxREAL);
+        plhs[2] = mxCreateDoubleMatrix(osqpData->solver->work->data->m,1,mxREAL);
         // dual infeasibility certificate
-        plhs[3] = mxCreateDoubleMatrix(osqpSolver->work->data->n,1,mxREAL);
+        plhs[3] = mxCreateDoubleMatrix(osqpData->solver->work->data->n,1,mxREAL);
 
         //copy results to mxArray outputs
         //assume that five outputs will always
         //be returned to matlab-side class wrapper
-        if ((osqpSolver->info->status_val != OSQP_PRIMAL_INFEASIBLE) &&
-            (osqpSolver->info->status_val != OSQP_DUAL_INFEASIBLE)){
+        if ((osqpData->solver->info->status_val != OSQP_PRIMAL_INFEASIBLE) &&
+            (osqpData->solver->info->status_val != OSQP_DUAL_INFEASIBLE)){
 
             //primal and dual solutions
-            castToDoubleArr(osqpSolver->solution->x, mxGetPr(plhs[0]), osqpSolver->work->data->n);
-            castToDoubleArr(osqpSolver->solution->y, mxGetPr(plhs[1]), osqpSolver->work->data->m);
+            castToDoubleArr(osqpData->solver->solution->x, mxGetPr(plhs[0]), osqpData->solver->work->data->n);
+            castToDoubleArr(osqpData->solver->solution->y, mxGetPr(plhs[1]), osqpData->solver->work->data->m);
 
             //infeasibility certificates -> NaN values
-            setToNaN(mxGetPr(plhs[2]), osqpSolver->work->data->m);
-            setToNaN(mxGetPr(plhs[3]), osqpSolver->work->data->n);
+            setToNaN(mxGetPr(plhs[2]), osqpData->solver->work->data->m);
+            setToNaN(mxGetPr(plhs[3]), osqpData->solver->work->data->n);
 
-        } else if (osqpSolver->info->status_val == OSQP_PRIMAL_INFEASIBLE ||
-        osqpSolver->info->status_val == OSQP_PRIMAL_INFEASIBLE_INACCURATE){ //primal infeasible
+        } else if (osqpData->solver->info->status_val == OSQP_PRIMAL_INFEASIBLE ||
+        osqpData->solver->info->status_val == OSQP_PRIMAL_INFEASIBLE_INACCURATE){ //primal infeasible
 
             //primal and dual solutions -> NaN values
-            setToNaN(mxGetPr(plhs[0]), osqpSolver->work->data->n);
-            setToNaN(mxGetPr(plhs[1]), osqpSolver->work->data->m);
+            setToNaN(mxGetPr(plhs[0]), osqpData->solver->work->data->n);
+            setToNaN(mxGetPr(plhs[1]), osqpData->solver->work->data->m);
 
             //primal infeasibility certificates
-            castToDoubleArr(osqpSolver->solution->prim_inf_cert, mxGetPr(plhs[2]), osqpSolver->work->data->m);
+            castToDoubleArr(osqpData->solver->solution->prim_inf_cert, mxGetPr(plhs[2]), osqpData->solver->work->data->m);
 
             //dual infeasibility certificates -> NaN values
-            setToNaN(mxGetPr(plhs[3]), osqpSolver->work->data->n);
+            setToNaN(mxGetPr(plhs[3]), osqpData->solver->work->data->n);
 
             // Set objective value to infinity
-            osqpSolver->info->obj_val = mxGetInf();
+            osqpData->solver->info->obj_val = mxGetInf();
 
         } else { //dual infeasible
 
             //primal and dual solutions -> NaN values
-            setToNaN(mxGetPr(plhs[0]), osqpSolver->work->data->n);
-            setToNaN(mxGetPr(plhs[1]), osqpSolver->work->data->m);
+            setToNaN(mxGetPr(plhs[0]), osqpData->solver->work->data->n);
+            setToNaN(mxGetPr(plhs[1]), osqpData->solver->work->data->m);
 
             //primal infeasibility certificates -> NaN values
-            setToNaN(mxGetPr(plhs[2]), osqpSolver->work->data->m);
+            setToNaN(mxGetPr(plhs[2]), osqpData->solver->work->data->m);
 
             //dual infeasibility certificates
-            castToDoubleArr(osqpSolver->solution->dual_inf_cert, mxGetPr(plhs[3]), osqpSolver->work->data->n);
+            castToDoubleArr(osqpData->solver->solution->dual_inf_cert, mxGetPr(plhs[3]), osqpData->solver->work->data->n);
 
             // Set objective value to -infinity
-            osqpSolver->info->obj_val = -mxGetInf();
+            osqpData->solver->info->obj_val = -mxGetInf();
         }
 
-        if (osqpSolver->info->status_val == OSQP_NON_CVX) {
-            osqpSolver->info->obj_val = mxGetNaN();
+        if (osqpData->solver->info->status_val == OSQP_NON_CVX) {
+            osqpData->solver->info->obj_val = mxGetNaN();
         }
 
-        plhs[4] = copyInfoToMxStruct(osqpSolver->info); // Info structure
+        plhs[4] = copyInfoToMxStruct(osqpData->solver->info); // Info structure
 
         return;
     }
@@ -612,14 +615,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 }
 
 /**
- * This function sets all the properties of OSQPSolver to NULL.
+ * This function dynamically allocates OSQPSovler and sets all the properties of OSQPSolver to NULL.
+ * WARNING: The memory allocated here (OSQPSolver*) needs to be freed.
  * WARNING: Any dynamically allocated pointers must be freed before calling this function.
 */
-void initializeOSQPSolver(OSQPSolver* osqpSolver) {
-  osqpSolver->info      = NULL;
-  osqpSolver->settings  = NULL;
-  osqpSolver->solution  = NULL;
-  osqpSolver->work      = NULL;
+OSQPSolver* initializeOSQPSolver() {
+  OSQPSolver* osqpSolver = new OSQPSolver;
+  osqpSolver->info       = NULL;
+  osqpSolver->settings   = NULL;
+  osqpSolver->solution   = NULL;
+  osqpSolver->work       = NULL;
+  //osqp_set_default_settings(osqpSolver->settings);
+  return osqpSolver;
 }
 
 //Dynamically creates a OSQPFloat vector copy of the input.
@@ -714,7 +721,7 @@ mxArray* copyInfoToMxStruct(OSQPInfo* info){
   mxSetField(mxPtr, 0, "update_time", mxCreateDoubleScalar(info->update_time));
   mxSetField(mxPtr, 0, "polish_time", mxCreateDoubleScalar(info->polish_time));
   mxSetField(mxPtr, 0, "run_time",    mxCreateDoubleScalar(info->run_time));
-  #endif
+  #endif /* ifdef PROFILING */
 
   mxSetField(mxPtr, 0, "rho_updates",    mxCreateDoubleScalar(info->rho_updates));
   mxSetField(mxPtr, 0, "rho_estimate",   mxCreateDoubleScalar(info->rho_estimate));
@@ -752,7 +759,13 @@ mxArray* copySettingsToMxStruct(OSQPSettings* settings){
   mxSetField(mxPtr, 0, "check_termination",      mxCreateDoubleScalar(settings->check_termination));
   mxSetField(mxPtr, 0, "warm_starting",          mxCreateDoubleScalar(settings->warm_starting));
   mxSetField(mxPtr, 0, "time_limit",             mxCreateDoubleScalar(settings->time_limit));
-
+  mxSetField(mxPtr, 0, "device",                 mxCreateDoubleScalar(settings->device));
+  mxSetField(mxPtr, 0, "polishing",              mxCreateDoubleScalar(settings->polishing));
+  mxSetField(mxPtr, 0, "rho_is_vec",             mxCreateDoubleScalar(settings->rho_is_vec));
+  mxSetField(mxPtr, 0, "cg_max_iter",            mxCreateDoubleScalar(settings->cg_max_iter));
+  mxSetField(mxPtr, 0, "cg_tol_reduction",       mxCreateDoubleScalar(settings->cg_tol_reduction));
+  mxSetField(mxPtr, 0, "cg_tol_fraction",        mxCreateDoubleScalar(settings->cg_tol_fraction));
+  mxSetField(mxPtr, 0, "time_limit",             mxCreateDoubleScalar(settings->cg_precond));
   return mxPtr;
 }
 
@@ -788,7 +801,13 @@ void copyMxStructToSettings(const mxArray* mxPtr, OSQPSettings* settings){
   settings->check_termination      = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "check_termination"));
   settings->warm_starting          = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "warm_starting"));
   settings->time_limit             = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "time_limit"));
-
+  settings->device                 = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "device"));
+  settings->polishing              = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "polishing"));
+  settings->rho_is_vec             = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "rho_is_vec"));
+  settings->cg_max_iter            = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "cg_max_iter"));
+  settings->cg_tol_reduction       = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "cg_tol_reduction"));
+  settings->cg_tol_fraction        = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "cg_tol_fraction"));
+  settings->cg_precond             = (osqp_precond_type) (OSQPInt) (mxGetField(mxPtr, 0, "cg_precond"));
 }
 
 void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OSQPSolver* osqpSolver){
