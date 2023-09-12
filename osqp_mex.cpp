@@ -4,10 +4,10 @@
 #include "osqp.h"
 //#include "ctrlc.h"             // Needed for interrupt
 #include "qdldl_interface.h"   // To extract workspace for codegen
-//#include <string> //DELETE HERE
-//#include <iostream> //DELETE HERE
-//using std::cout; //DELETE HERE
-//using std::endl; //DELETE HERE
+#include <string> //DELETE HERE
+#include <iostream> //DELETE HERE
+using std::cout; //DELETE HERE
+using std::endl; //DELETE HERE
 
 //c_int is replaced with OSQPInt
 //c_float is replaced with OSQPFloat
@@ -109,13 +109,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {   
     OsqpData* osqpData;
     //OSQPSolver* osqpSolver = NULL;
-
     // Exitflag
     OSQPInt exitflag = 0;
-
     // Static string for static methods
     char stat_string[64];
-
     // Get the command string
     char cmd[64];
 	  if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
@@ -146,7 +143,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             mexErrMsgTxt("Second argument for static functions is string 'static'");
         }
     }
-
     // delete the object and its data
     if (!strcmp("delete", cmd)) {
         
@@ -206,7 +202,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // setup
     if (!strcmp("setup", cmd)) {
-
         //throw an error if this is called more than once
         if(osqpData->solver){
           mexErrMsgTxt("Solver is already initialized with problem data.");
@@ -260,8 +255,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         // Setup workspace
         //exitflag = osqp_setup(&(osqpData->work), data, settings);
-        exitflag = osqp_setup(&osqpData->solver, dataP, dataQ, dataA, dataL, dataU, dataM, dataN, settings);
-
+        exitflag = osqp_setup(&(osqpData->solver), dataP, dataQ, dataA, dataL, dataU, dataM, dataN, settings);
         //cleanup temporary structures
         // Data
         if (Px)       c_free(Px);
@@ -764,7 +758,7 @@ mxArray* copySettingsToMxStruct(OSQPSettings* settings){
   mxSetField(mxPtr, 0, "cg_max_iter",            mxCreateDoubleScalar(settings->cg_max_iter));
   mxSetField(mxPtr, 0, "cg_tol_reduction",       mxCreateDoubleScalar(settings->cg_tol_reduction));
   mxSetField(mxPtr, 0, "cg_tol_fraction",        mxCreateDoubleScalar(settings->cg_tol_fraction));
-  mxSetField(mxPtr, 0, "time_limit",             mxCreateDoubleScalar(settings->cg_precond));
+  mxSetField(mxPtr, 0, "time_limit",             mxCreateDoubleScalar(settings->time_limit));
   return mxPtr;
 }
 
