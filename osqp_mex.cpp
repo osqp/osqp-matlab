@@ -4,10 +4,6 @@
 #include "osqp.h"
 //#include "ctrlc.h"             // Needed for interrupt
 #include "qdldl_interface.h"   // To extract workspace for codegen
-#include <string> //DELETE HERE
-#include <iostream> //DELETE HERE
-using std::cout; //DELETE HERE
-using std::endl; //DELETE HERE
 
 //c_int is replaced with OSQPInt
 //c_float is replaced with OSQPFloat
@@ -26,13 +22,11 @@ const char* OSQP_INFO_FIELDS[] = {"status",         //char*
                                   "iter",           //OSQPInt
                                   "rho_updates",    //OSQPInt
                                   "rho_estimate",   //OSQPFloat
-                                  #ifdef PROFILING
                                   "setup_time",     //OSQPFloat
                                   "solve_time",     //OSQPFloat
                                   "update_time",    //OSQPFloat
                                   "polish_time",    //OSQPFloat
                                   "run_time",       //OSQPFloat
-                                  #endif /* ifdef PROFILING */
                                   };      
 
 const char* OSQP_SETTINGS_FIELDS[] = {"device",                 //OSQPInt
@@ -100,9 +94,7 @@ OSQPInt        osqp_update_verbose(OSQPSolver* osqpSolver, OSQPInt verbose_new);
 OSQPInt        osqp_update_scaled_termination(OSQPSolver* osqpSolver, OSQPInt scaled_termination_new);
 OSQPInt        osqp_update_check_termination(OSQPSolver* osqpSolver, OSQPInt check_termination_new);
 OSQPInt        osqp_update_warm_start(OSQPSolver* osqpSolver, OSQPInt warm_start_new);
-#ifdef PROFILING
 OSQPInt        osqp_update_time_limit(OSQPSolver* osqpSolver, OSQPFloat time_limit_new);
-#endif /* ifdef PROFILING */
 
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -707,14 +699,12 @@ mxArray* copyInfoToMxStruct(OSQPInfo* info){
   mxSetField(mxPtr, 0, "prim_res",      mxCreateDoubleScalar(info->prim_res));
   mxSetField(mxPtr, 0, "dual_res",      mxCreateDoubleScalar(info->dual_res));
 
-  #ifdef PROFILING
-  //if not profiling, these fields will be empty
   mxSetField(mxPtr, 0, "setup_time",  mxCreateDoubleScalar(info->setup_time));
   mxSetField(mxPtr, 0, "solve_time",  mxCreateDoubleScalar(info->solve_time));
   mxSetField(mxPtr, 0, "update_time", mxCreateDoubleScalar(info->update_time));
   mxSetField(mxPtr, 0, "polish_time", mxCreateDoubleScalar(info->polish_time));
   mxSetField(mxPtr, 0, "run_time",    mxCreateDoubleScalar(info->run_time));
-  #endif /* ifdef PROFILING */
+
 
   mxSetField(mxPtr, 0, "rho_updates",    mxCreateDoubleScalar(info->rho_updates));
   mxSetField(mxPtr, 0, "rho_estimate",   mxCreateDoubleScalar(info->rho_estimate));
@@ -835,10 +825,8 @@ void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OSQPSolver* osqpSolver){
     (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "check_termination")));
   osqp_update_warm_start(osqpSolver,
     (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "warm_starting")));
-#ifdef PROFILING    
   osqp_update_time_limit(osqpSolver,
     (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "time_limit")));
-#endif /* ifdef PROFILING */
 
   // Check for settings that need special update
   // Update them only if they are different than already set values
@@ -1086,7 +1074,6 @@ OSQPInt osqp_update_check_termination(OSQPSolver* osqpSolver, OSQPInt check_term
   return 0;
 }
 
-#ifdef PROFILING
 
 OSQPInt osqp_update_time_limit(OSQPSolver* osqpSolver, OSQPFloat time_limit_new) {
 
@@ -1106,4 +1093,3 @@ OSQPInt osqp_update_time_limit(OSQPSolver* osqpSolver, OSQPFloat time_limit_new)
 
   return 0;
 }
-#endif /* ifdef PROFILING */
