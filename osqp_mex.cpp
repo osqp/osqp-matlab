@@ -1153,6 +1153,38 @@ void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OsqpData* osqpData){
   //settings in the osqp workspace.  Protects against bad parameter writes
   //or future modifications to updated settings handling
 
+  // Warn the user if they try to update a parameter that cannot be updated
+  // after setup.
+  if((c_float)mxGetScalar(
+        mxGetField(mxPtr, 0, "sigma")) != osqpData->work->settings->sigma) {
+      mexWarnMsgTxt("sigma is not updateable after calling setup. Ignoring");
+  }
+  if((enum linsys_solver_type)(c_int)mxGetScalar(
+        mxGetField(mxPtr, 0, "linsys_solver")) !=
+          osqpData->work->settings->linsys_solver) {
+      mexWarnMsgTxt("linsys_solver is not updateable after calling setup. Ignoring");
+  }
+  if((c_int)mxGetScalar(mxGetField(mxPtr, 0, "scaling")) !=
+        osqpData->work->settings->scaling) {
+      mexWarnMsgTxt("scaling is not updateable after calling setup. Ignoring");
+  }
+  if((c_int)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho")) !=
+          osqpData->work->settings->adaptive_rho) {
+      mexWarnMsgTxt("adaptive_rho is not updateable after calling setup. Ignoring");
+  }
+  if((c_int)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_interval")) !=
+          osqpData->work->settings->adaptive_rho_interval) {
+      mexWarnMsgTxt("adaptive_rho_interval is not updateable after calling setup. Ignoring");
+  }
+  if((c_float)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_tolerance")) !=
+          osqpData->work->settings->adaptive_rho_tolerance) {
+      mexWarnMsgTxt("adaptive_rho_tolerance is not updateable after calling setup. Ignoring");
+  }
+  if((c_float)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_fraction")) !=
+          osqpData->work->settings->adaptive_rho_fraction) {
+      mexWarnMsgTxt("adaptive_rho_fraction is not updateable after calling setup. Ignoring");
+  }
+
   osqp_update_max_iter(osqpData->work,
     (c_int)mxGetScalar(mxGetField(mxPtr, 0, "max_iter")));
   osqp_update_eps_abs(osqpData->work,
