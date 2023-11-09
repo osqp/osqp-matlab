@@ -2,8 +2,6 @@
 #include "matrix.h"
 #include "osqp_mex.hpp"
 #include "osqp.h"
-//#include "ctrlc.h"             // Needed for interrupt
-#include "qdldl_interface.h"   // To extract workspace for codegen
 
 //c_int is replaced with OSQPInt
 //c_float is replaced with OSQPFloat
@@ -75,26 +73,13 @@ void           castToDoubleArr(OSQPFloat *arr, double* arr_out, OSQPInt len);
 void           setToNaN(double* arr_out, OSQPInt len);
 void           copyMxStructToSettings(const mxArray*, OSQPSettings*);
 void           copyUpdatedSettingsToWork(const mxArray*, OSQPSolver*);
-void           castCintToDoubleArr(OSQPInt *arr, double* arr_out, OSQPInt len);
+//void           castCintToDoubleArr(OSQPInt *arr, double* arr_out, OSQPInt len); //DELETE HERE
 void           freeCscMatrix(OSQPCscMatrix* M);
-OSQPInt*       copyToCintVector(mwIndex * vecData, OSQPInt numel);
-OSQPInt*       copyDoubleToCintVector(double* vecData, OSQPInt numel);
+OSQPInt*       copyToOSQPIntVector(mwIndex * vecData, OSQPInt numel);
+OSQPInt*       copyDoubleToOSQPIntVector(double* vecData, OSQPInt numel);
 OSQPFloat*     copyToOSQPFloatVector(double * vecData, OSQPInt numel);
 mxArray*       copyInfoToMxStruct(OSQPInfo* info);
 mxArray*       copySettingsToMxStruct(OSQPSettings* settings);
-OSQPInt        osqp_update_max_iter(OSQPSolver* osqpSolver, OSQPInt max_iter_new);
-OSQPInt        osqp_update_eps_abs(OSQPSolver* osqpSolver, OSQPFloat eps_abs_new);
-OSQPInt        osqp_update_eps_rel(OSQPSolver* osqpSolver, OSQPFloat eps_rel_new);
-OSQPInt        osqp_update_eps_prim_inf(OSQPSolver* osqpSolver, OSQPFloat eps_prim_inf_new);
-OSQPInt        osqp_update_eps_dual_inf(OSQPSolver* osqpSolver, OSQPFloat eps_dual_inf_new);
-OSQPInt        osqp_update_alpha(OSQPSolver* osqpSolver, OSQPFloat alpha_new);
-OSQPInt        osqp_update_delta(OSQPSolver* osqpSolver, OSQPFloat delta_new);
-OSQPInt        osqp_update_polish_refine_iter(OSQPSolver* osqpSolver, OSQPInt polish_refine_iter_new);
-OSQPInt        osqp_update_verbose(OSQPSolver* osqpSolver, OSQPInt verbose_new);
-OSQPInt        osqp_update_scaled_termination(OSQPSolver* osqpSolver, OSQPInt scaled_termination_new);
-OSQPInt        osqp_update_check_termination(OSQPSolver* osqpSolver, OSQPInt check_termination_new);
-OSQPInt        osqp_update_warm_start(OSQPSolver* osqpSolver, OSQPInt warm_start_new);
-OSQPInt        osqp_update_time_limit(OSQPSolver* osqpSolver, OSQPFloat time_limit_new);
 
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -140,9 +125,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         
         osqp_cleanup(osqpData->solver);
         destroyObject<OsqpData>(prhs[1]);
-        //clean up the handle object
-        //if (prhs[1]) destroyObject<OSQPSolver>(prhs[1]);
-        //osqp_cleanup(osqpSolver);
         // Warn if other commands were ignored
         if (nlhs != 0 || nrhs != 2)
             mexWarnMsgTxt("Delete: Unexpected arguments ignored.");
@@ -222,15 +204,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         OSQPFloat* dataU   = copyToOSQPFloatVector(mxGetPr(u), dataM);
 
         // Matrix P:  nnz = P->p[n]
-        OSQPInt * Pp = (OSQPInt*)copyToCintVector(mxGetJc(P), dataN + 1);
-        OSQPInt * Pi = (OSQPInt*)copyToCintVector(mxGetIr(P), Pp[dataN]);
+        OSQPInt * Pp = (OSQPInt*)copyToOSQPIntVector(mxGetJc(P), dataN + 1);
+        OSQPInt * Pi = (OSQPInt*)copyToOSQPIntVector(mxGetIr(P), Pp[dataN]);
         OSQPFloat * Px = copyToOSQPFloatVector(mxGetPr(P), Pp[dataN]);
         OSQPCscMatrix* dataP = new OSQPCscMatrix;
         csc_set_data(dataP, dataN, dataN, Pp[dataN], Px, Pi, Pp);
 
         // Matrix A: nnz = A->p[n]
-        OSQPInt* Ap = (OSQPInt*)copyToCintVector(mxGetJc(A), dataN + 1);
-        OSQPInt* Ai = (OSQPInt*)copyToCintVector(mxGetIr(A), Ap[dataN]);
+        OSQPInt* Ap = (OSQPInt*)copyToOSQPIntVector(mxGetJc(A), dataN + 1);
+        OSQPInt* Ai = (OSQPInt*)copyToOSQPIntVector(mxGetIr(A), Ap[dataN]);
         OSQPFloat * Ax = copyToOSQPFloatVector(mxGetPr(A), Ap[dataN]);
         OSQPCscMatrix* dataA = new OSQPCscMatrix;
         csc_set_data(dataA, dataM, dataN, Ap[dataN], Ax, Ai, Ap);
@@ -250,17 +232,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         exitflag = osqp_setup(&(osqpData->solver), dataP, dataQ, dataA, dataL, dataU, dataM, dataN, settings);
         //cleanup temporary structures
         // Data
-        if (Px)       c_free(Px);
-        if (Pi)       c_free(Pi);
-        if (Pp)       c_free(Pp);
-        if (Ax)       c_free(Ax);
-        if (Ai)       c_free(Ai);
-        if (Ap)       c_free(Ap);
-        if (dataQ)    c_free(dataQ);
-        if (dataL)    c_free(dataL);
-        if (dataU)    c_free(dataU);
-        if (dataP)    c_free(dataP);
-        if (dataA)    c_free(dataA);
+        if (Px)       free(Px);
+        if (Pi)       free(Pi);
+        if (Pp)       free(Pp);
+        if (Ax)       free(Ax);
+        if (Ai)       free(Ai);
+        if (Ap)       free(Ap);
+        if (dataQ)    free(dataQ);
+        if (dataL)    free(dataL);
+        if (dataU)    free(dataU);
+        if (dataP)    free(dataP);
+        if (dataA)    free(dataA);
         // Settings
         if (settings) mxFree(settings);
 
@@ -280,9 +262,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         if(!osqpData->solver){
           mexErrMsgTxt("Solver has not been initialized.");
         }
-
-        plhs[0] = mxCreateDoubleScalar(osqpData->solver->work->data->n);
-        plhs[1] = mxCreateDoubleScalar(osqpData->solver->work->data->m);
+        OSQPInt n, m;
+        osqp_get_dimensions(osqpData->solver, &m, &n);
+        plhs[0] = mxCreateDoubleScalar(n);
+        plhs[1] = mxCreateDoubleScalar(m);
 
         return;
     }
@@ -324,17 +307,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         OSQPFloat *Ax_vec     = NULL;
         OSQPInt *Px_idx_vec   = NULL;
         OSQPInt *Ax_idx_vec   = NULL;
+
+        OSQPInt n, m;
+        osqp_get_dimensions(osqpData->solver, &m, &n);
         if(!mxIsEmpty(q)){
-            q_vec = copyToOSQPFloatVector(mxGetPr(q),
-                                       osqpData->solver->work->data->n);
+            q_vec = copyToOSQPFloatVector(mxGetPr(q), n);
         }
         if(!mxIsEmpty(l)){
-            l_vec = copyToOSQPFloatVector(mxGetPr(l),
-                                       osqpData->solver->work->data->m);
+            l_vec = copyToOSQPFloatVector(mxGetPr(l), m);
         }
         if(!mxIsEmpty(u)){
-            u_vec = copyToOSQPFloatVector(mxGetPr(u),
-                                       osqpData->solver->work->data->m);
+            u_vec = copyToOSQPFloatVector(mxGetPr(u), m);
         }
         if(!mxIsEmpty(Px)){
             Px_vec = copyToOSQPFloatVector(mxGetPr(Px), Px_n);
@@ -343,10 +326,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             Ax_vec = copyToOSQPFloatVector(mxGetPr(Ax), Ax_n);
         }
         if(!mxIsEmpty(Px_idx)){
-            Px_idx_vec = copyDoubleToCintVector(mxGetPr(Px_idx), Px_n);
+            Px_idx_vec = copyDoubleToOSQPIntVector(mxGetPr(Px_idx), Px_n);
         }
         if(!mxIsEmpty(Ax_idx)){
-            Ax_idx_vec = copyDoubleToCintVector(mxGetPr(Ax_idx), Ax_n);
+            Ax_idx_vec = copyDoubleToOSQPIntVector(mxGetPr(Ax_idx), Ax_n);
         }
 
         if (!exitflag && (!mxIsEmpty(q) || !mxIsEmpty(l) || !mxIsEmpty(u))) {
@@ -361,13 +344,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                                       
 
         // Free vectors
-        if(!mxIsEmpty(q))  c_free(q_vec);
-        if(!mxIsEmpty(l))  c_free(l_vec);
-        if(!mxIsEmpty(u))  c_free(u_vec);
-        if(!mxIsEmpty(Px)) c_free(Px_vec);
-        if(!mxIsEmpty(Ax)) c_free(Ax_vec);
-        if(!mxIsEmpty(Px_idx)) c_free(Px_idx_vec);
-        if(!mxIsEmpty(Ax_idx)) c_free(Ax_idx_vec);
+        if(!mxIsEmpty(q))  free(q_vec);
+        if(!mxIsEmpty(l))  free(l_vec);
+        if(!mxIsEmpty(u))  free(u_vec);
+        if(!mxIsEmpty(Px)) free(Px_vec);
+        if(!mxIsEmpty(Ax)) free(Ax_vec);
+        if(!mxIsEmpty(Px_idx)) free(Px_idx_vec);
+        if(!mxIsEmpty(Ax_idx)) free(Ax_idx_vec);
 
         // Report errors (if any)
         switch (exitflag) {
@@ -408,21 +391,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       OSQPFloat *x_vec = NULL;
       OSQPFloat *y_vec = NULL;
 
+      OSQPInt n, m;
+      osqp_get_dimensions(osqpData->solver, &m, &n);
       if(!mxIsEmpty(x)){
-          x_vec = copyToOSQPFloatVector(mxGetPr(x),
-                                      osqpData->solver->work->data->n);
+          x_vec = copyToOSQPFloatVector(mxGetPr(x),n);
       }
       if(!mxIsEmpty(y)){
-          y_vec = copyToOSQPFloatVector(mxGetPr(y),
-                                      osqpData->solver->work->data->m);
+          y_vec = copyToOSQPFloatVector(mxGetPr(y),m);
       }
 
       // Warm start x and y
       osqp_warm_start(osqpData->solver, x_vec, y_vec);
 
       // Free vectors
-      if(!x_vec) c_free(x_vec);
-      if(!y_vec) c_free(y_vec);
+      if(!x_vec) free(x_vec);
+      if(!y_vec) free(y_vec);
 
       return;
     }
@@ -438,16 +421,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // solve the problem
         osqp_solve(osqpData->solver);
 
-
+        OSQPInt n, m;
+        osqp_get_dimensions(osqpData->solver, &m, &n);
         // Allocate space for solution
         // primal variables
-        plhs[0] = mxCreateDoubleMatrix(osqpData->solver->work->data->n,1,mxREAL);
+        plhs[0] = mxCreateDoubleMatrix(n,1,mxREAL);
         // dual variables
-        plhs[1] = mxCreateDoubleMatrix(osqpData->solver->work->data->m,1,mxREAL);
+        plhs[1] = mxCreateDoubleMatrix(m,1,mxREAL);
         // primal infeasibility certificate
-        plhs[2] = mxCreateDoubleMatrix(osqpData->solver->work->data->m,1,mxREAL);
+        plhs[2] = mxCreateDoubleMatrix(m,1,mxREAL);
         // dual infeasibility certificate
-        plhs[3] = mxCreateDoubleMatrix(osqpData->solver->work->data->n,1,mxREAL);
+        plhs[3] = mxCreateDoubleMatrix(n,1,mxREAL);
 
         //copy results to mxArray outputs
         //assume that five outputs will always
@@ -456,25 +440,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             (osqpData->solver->info->status_val != OSQP_DUAL_INFEASIBLE)){
 
             //primal and dual solutions
-            castToDoubleArr(osqpData->solver->solution->x, mxGetPr(plhs[0]), osqpData->solver->work->data->n);
-            castToDoubleArr(osqpData->solver->solution->y, mxGetPr(plhs[1]), osqpData->solver->work->data->m);
+            castToDoubleArr(osqpData->solver->solution->x, mxGetPr(plhs[0]), n);
+            castToDoubleArr(osqpData->solver->solution->y, mxGetPr(plhs[1]), m);
 
             //infeasibility certificates -> NaN values
-            setToNaN(mxGetPr(plhs[2]), osqpData->solver->work->data->m);
-            setToNaN(mxGetPr(plhs[3]), osqpData->solver->work->data->n);
+            setToNaN(mxGetPr(plhs[2]), m);
+            setToNaN(mxGetPr(plhs[3]), n);
 
         } else if (osqpData->solver->info->status_val == OSQP_PRIMAL_INFEASIBLE ||
         osqpData->solver->info->status_val == OSQP_PRIMAL_INFEASIBLE_INACCURATE){ //primal infeasible
 
             //primal and dual solutions -> NaN values
-            setToNaN(mxGetPr(plhs[0]), osqpData->solver->work->data->n);
-            setToNaN(mxGetPr(plhs[1]), osqpData->solver->work->data->m);
+            setToNaN(mxGetPr(plhs[0]), n);
+            setToNaN(mxGetPr(plhs[1]), m);
 
             //primal infeasibility certificates
-            castToDoubleArr(osqpData->solver->solution->prim_inf_cert, mxGetPr(plhs[2]), osqpData->solver->work->data->m);
+            castToDoubleArr(osqpData->solver->solution->prim_inf_cert, mxGetPr(plhs[2]), m);
 
             //dual infeasibility certificates -> NaN values
-            setToNaN(mxGetPr(plhs[3]), osqpData->solver->work->data->n);
+            setToNaN(mxGetPr(plhs[3]), n);
 
             // Set objective value to infinity
             osqpData->solver->info->obj_val = mxGetInf();
@@ -482,14 +466,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         } else { //dual infeasible
 
             //primal and dual solutions -> NaN values
-            setToNaN(mxGetPr(plhs[0]), osqpData->solver->work->data->n);
-            setToNaN(mxGetPr(plhs[1]), osqpData->solver->work->data->m);
+            setToNaN(mxGetPr(plhs[0]), n);
+            setToNaN(mxGetPr(plhs[1]), m);
 
             //primal infeasibility certificates -> NaN values
-            setToNaN(mxGetPr(plhs[2]), osqpData->solver->work->data->m);
+            setToNaN(mxGetPr(plhs[2]), m);
 
             //dual infeasibility certificates
-            castToDoubleArr(osqpData->solver->solution->dual_inf_cert, mxGetPr(plhs[3]), osqpData->solver->work->data->n);
+            castToDoubleArr(osqpData->solver->solution->dual_inf_cert, mxGetPr(plhs[3]), n);
 
             // Set objective value to -infinity
             osqpData->solver->info->obj_val = -mxGetInf();
@@ -620,7 +604,7 @@ OSQPFloat*    copyToOSQPFloatVector(double * vecData, OSQPInt numel){
   if (!vecData) return NULL;
 
   //This needs to be freed!
-  OSQPFloat* out = (OSQPFloat*)c_malloc(numel * sizeof(OSQPFloat));
+  OSQPFloat* out = (OSQPFloat*)malloc(numel * sizeof(OSQPFloat));
 
   //copy data
   for(OSQPInt i=0; i < numel; i++){
@@ -630,9 +614,9 @@ OSQPFloat*    copyToOSQPFloatVector(double * vecData, OSQPInt numel){
 }
 
 //Dynamically creates a OSQPInt vector copy of the input.
-OSQPInt* copyToCintVector(mwIndex* vecData, OSQPInt numel){
+OSQPInt* copyToOSQPIntVector(mwIndex* vecData, OSQPInt numel){
   // This memory needs to be freed!
-  OSQPInt* out = (OSQPInt*)c_malloc(numel * sizeof(OSQPInt));
+  OSQPInt* out = (OSQPInt*)malloc(numel * sizeof(OSQPInt));
 
   //copy data
   for(OSQPInt i=0; i < numel; i++){
@@ -643,9 +627,9 @@ OSQPInt* copyToCintVector(mwIndex* vecData, OSQPInt numel){
 }
 
 //Dynamically copies a double vector to OSQPInt.
-OSQPInt* copyDoubleToCintVector(double* vecData, OSQPInt numel){
+OSQPInt* copyDoubleToOSQPIntVector(double* vecData, OSQPInt numel){
   // This memory needs to be freed!
-  OSQPInt* out = (OSQPInt*)c_malloc(numel * sizeof(OSQPInt));
+  OSQPInt* out = (OSQPInt*)malloc(numel * sizeof(OSQPInt));
 
   //copy data
   for(OSQPInt i=0; i < numel; i++){
@@ -655,19 +639,20 @@ OSQPInt* copyDoubleToCintVector(double* vecData, OSQPInt numel){
 
 }
 
+/* DELETE HERE
 void castCintToDoubleArr(OSQPInt *arr, double* arr_out, OSQPInt len) {
     for (OSQPInt i = 0; i < len; i++) {
         arr_out[i] = (double)arr[i];
     }
-}
+}*/
 
 //This function frees the memory allocated in an OSQPCscMatrix M
 void freeCscMatrix(OSQPCscMatrix* M) {
     if (!M) return;
-    if (M->p) c_free(M->p);
-    if (M->i) c_free(M->i);
-    if (M->x) c_free(M->x);
-    c_free(M);
+    if (M->p) free(M->p);
+    if (M->i) free(M->i);
+    if (M->x) free(M->x);
+    free(M);
 }
 
 void castToDoubleArr(OSQPFloat *arr, double* arr_out, OSQPInt len) {
@@ -796,300 +781,25 @@ void copyMxStructToSettings(const mxArray* mxPtr, OSQPSettings* settings){
 void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OSQPSolver* osqpSolver){
 
   OSQPInt exitflag;
-
-  //This does basically the same job as copyMxStructToSettings which was used
-  //during setup, but uses the provided update functions in osqp.h to update
-  //settings in the osqp workspace.  Protects against bad parameter writes
-  //or future modifications to updated settings handling
-  osqp_update_max_iter(osqpSolver,
-    (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "max_iter")));
-  osqp_update_eps_abs(osqpSolver,
-    (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_abs")));
-  osqp_update_eps_rel(osqpSolver,
-    (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_rel")));
-  osqp_update_eps_prim_inf(osqpSolver,
-    (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_prim_inf")));
-  osqp_update_eps_dual_inf(osqpSolver,
-    (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf")));
-  osqp_update_alpha(osqpSolver,
-    (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "alpha")));
-  osqp_update_delta(osqpSolver,
-    (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "delta")));
-  osqp_update_polish_refine_iter(osqpSolver,
-    (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "polish_refine_iter")));
-  osqp_update_verbose(osqpSolver,
-    (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "verbose")));
-  osqp_update_scaled_termination(osqpSolver,
-    (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "scaled_termination")));
-  osqp_update_check_termination(osqpSolver,
-    (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "check_termination")));
-  osqp_update_warm_start(osqpSolver,
-    (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "warm_starting")));
-  osqp_update_time_limit(osqpSolver,
-    (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "time_limit")));
-
-  // Check for settings that need special update
-  // Update them only if they are different than already set values
-  OSQPFloat rho_new = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
-  // Check if it has changed
-  if (c_absval(rho_new - osqpSolver->settings->rho) > NEW_SETTINGS_TOL){
-      exitflag = osqp_update_rho(osqpSolver, rho_new);
-      if (exitflag){
-          mexErrMsgTxt("rho update error!");
-      }
-  }
-
-
-}
-
-/****************************
-* Update problem settings  *
-****************************/
-OSQPInt osqp_update_max_iter(OSQPSolver* osqpSolver, OSQPInt max_iter_new) {
-
-  // Check if osqpSolver has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that max_iter is positive
-  if (max_iter_new <= 0) {
-#ifdef PRINTING
-    c_eprint("max_iter must be positive");
-#endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update max_iter
-  osqpSolver->settings->max_iter = max_iter_new;
-
-  return 0;
-}
-
-OSQPInt osqp_update_eps_abs(OSQPSolver* osqpSolver, OSQPFloat eps_abs_new) {
-
-  // Check if osqpSolver has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that eps_abs is positive
-  if (eps_abs_new < 0.) {
-#ifdef PRINTING
-    c_eprint("eps_abs must be nonnegative");
-#endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update eps_abs
-  osqpSolver->settings->eps_abs = eps_abs_new;
-
-  return 0;
-}
-
-OSQPInt osqp_update_eps_rel(OSQPSolver* osqpSolver, OSQPFloat eps_rel_new) {
-
-  // Check if osqpSolver has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that eps_rel is positive
-  if (eps_rel_new < 0.) {
-#ifdef PRINTING
-    c_eprint("eps_rel must be nonnegative");
-#endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update eps_rel
-  osqpSolver->settings->eps_rel = eps_rel_new;
-
-  return 0;
-}
-
-OSQPInt osqp_update_eps_prim_inf(OSQPSolver* osqpSolver, OSQPFloat eps_prim_inf_new) {
-
-  // Check if osqpSolver has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that eps_prim_inf is positive
-  if (eps_prim_inf_new < 0.) {
-#ifdef PRINTING
-    c_eprint("eps_prim_inf must be nonnegative");
-#endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update eps_prim_inf
-  osqpSolver->settings->eps_prim_inf = eps_prim_inf_new;
-
-  return 0;
-}
-
-OSQPInt osqp_update_eps_dual_inf(OSQPSolver* osqpSolver, OSQPFloat eps_dual_inf_new) {
-
-  // Check if osqpSolver has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that eps_dual_inf is positive
-  if (eps_dual_inf_new < 0.) {
-#ifdef PRINTING
-    c_eprint("eps_dual_inf must be nonnegative");
-#endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update eps_dual_inf
-  osqpSolver->settings->eps_dual_inf = eps_dual_inf_new;
-
-
-  return 0;
-}
-
-OSQPInt osqp_update_alpha(OSQPSolver* osqpSolver, OSQPFloat alpha_new) {
-
-  // Check if osqpSolver has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that alpha is between 0 and 2
-  if ((alpha_new <= 0.) || (alpha_new >= 2.)) {
-#ifdef PRINTING
-    c_eprint("alpha must be between 0 and 2");
-#endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update alpha
-  osqpSolver->settings->alpha = alpha_new;
-
-  return 0;
-}
-
-OSQPInt osqp_update_warm_start(OSQPSolver* osqpSolver, OSQPInt warm_start_new) {
-
-  // Check if osqpSolver has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that warm_start is either 0 or 1
-  if ((warm_start_new != 0) && (warm_start_new != 1)) {
-#ifdef PRINTING
-    c_eprint("warm_start should be either 0 or 1");
-#endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update warm_start
-  osqpSolver->settings->warm_starting = warm_start_new;
-
-  return 0;
-}
-
-OSQPInt osqp_update_delta(OSQPSolver* osqpSolver, OSQPFloat delta_new) {
-
-  // Check if workspace has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that delta is positive
-  if (delta_new <= 0.) {
-# ifdef PRINTING
-    c_eprint("delta must be positive");
-# endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update delta
-  osqpSolver->settings->delta = delta_new;
-
-  return 0;
-}
-
-OSQPInt osqp_update_polish_refine_iter(OSQPSolver* osqpSolver, OSQPInt polish_refine_iter_new) {
-
-  // Check if workspace has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that polish_refine_iter is nonnegative
-  if (polish_refine_iter_new < 0) {
-# ifdef PRINTING
-    c_eprint("polish_refine_iter must be nonnegative");
-# endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update polish_refine_iter
-  osqpSolver->settings->polish_refine_iter = polish_refine_iter_new;
-
-  return 0;
-}
-
-OSQPInt osqp_update_verbose(OSQPSolver* osqpSolver, OSQPInt verbose_new){
-
-  // Check if workspace has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that verbose is either 0 or 1
-  if ((verbose_new != 0) && (verbose_new != 1)) {
-# ifdef PRINTING
-    c_eprint("verbose should be either 0 or 1");
-# endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update verbose
-  osqpSolver->settings->verbose = verbose_new;
-
-  return 0;
-}
-
-OSQPInt osqp_update_scaled_termination(OSQPSolver* osqpSolver, OSQPInt scaled_termination_new) {
-
-  // Check if osqpSolver has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that scaled_termination is either 0 or 1
-  if ((scaled_termination_new != 0) && (scaled_termination_new != 1)) {
-#ifdef PRINTING
-    c_eprint("scaled_termination should be either 0 or 1");
-#endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update scaled_termination
-  osqpSolver->settings->scaled_termination = scaled_termination_new;
-
-  return 0;
-}
-
-OSQPInt osqp_update_check_termination(OSQPSolver* osqpSolver, OSQPInt check_termination_new) {
-
-  // Check if osqpSolver has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that check_termination is nonnegative
-  if (check_termination_new < 0) {
-#ifdef PRINTING
-    c_eprint("check_termination should be nonnegative");
-#endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update check_termination
-  osqpSolver->settings->check_termination = check_termination_new;
-
-  return 0;
-}
-
-
-OSQPInt osqp_update_time_limit(OSQPSolver* osqpSolver, OSQPFloat time_limit_new) {
-
-  // Check if osqpSolver has been initialized
-  if (!osqpSolver) return osqp_error(OSQP_WORKSPACE_NOT_INIT_ERROR);
-
-  // Check that time_limit is nonnegative
-  if (time_limit_new < 0.) {
-# ifdef PRINTING
-    c_print("time_limit must be nonnegative\n");
-# endif /* ifdef PRINTING */
-    return 1;
-  }
-
-  // Update time_limit
-  osqpSolver->settings->time_limit = time_limit_new;
-
-  return 0;
+  //TODO (Amit): Update this
+  OSQPSettings* update_template = (OSQPSettings *)mxCalloc(1,sizeof(OSQPSettings));
+  if (!update_template) mexErrMsgTxt("Failed to allocate temporary OSQPSettings object.");
+
+  update_template->max_iter = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "max_iter"));
+  update_template->eps_abs = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_abs"));
+  update_template->eps_rel = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_rel"));
+  update_template->eps_prim_inf = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_prim_inf"));
+  update_template->eps_dual_inf = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
+  update_template->alpha = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "alpha"));
+  update_template->delta = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "delta"));
+  update_template->polish_refine_iter = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "polish_refine_iter"));
+  update_template->verbose = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "verbose"));
+  update_template->scaled_termination = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "scaled_termination"));
+  update_template->check_termination = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "check_termination"));
+  update_template->warm_starting = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "warm_starting"));
+  update_template->time_limit = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "time_limit"));
+  update_template->rho = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
+
+  osqp_update_settings(osqpSolver, update_template);
+  if (update_template) free(update_template);
 }
