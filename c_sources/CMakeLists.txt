@@ -10,9 +10,11 @@ message( STATUS "Matlab root is " ${Matlab_ROOT_DIR} )
 
 include_directories( ${Matlab_INCLUDE_DIRS} )
 
-# Add debug symbols and optimizations to the build
-set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2" )
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2" )
+if( CMAKE_COMPILER_IS_GNUCXX )
+    # Add debug symbols and optimizations to the build
+    set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2" )
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2" )
+endif()
 
 # Insist on the pre-2018 complex data API so that mxGetPr will work correctly
 add_compile_definitions( MATLAB_MEXSRC_RELEASE=R2017b )
