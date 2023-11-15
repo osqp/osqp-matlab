@@ -208,14 +208,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         OSQPInt * Pp = (OSQPInt*)copyToOSQPIntVector(mxGetJc(P), dataN + 1);
         OSQPInt * Pi = (OSQPInt*)copyToOSQPIntVector(mxGetIr(P), Pp[dataN]);
         OSQPFloat * Px = copyToOSQPFloatVector(mxGetPr(P), Pp[dataN]);
-        OSQPCscMatrix* dataP = new OSQPCscMatrix;
+        OSQPCscMatrix* dataP = (OSQPCscMatrix*)c_calloc(1,sizeof(OSQPCscMatrix));
         csc_set_data(dataP, dataN, dataN, Pp[dataN], Px, Pi, Pp);
 
         // Matrix A: nnz = A->p[n]
         OSQPInt* Ap = (OSQPInt*)copyToOSQPIntVector(mxGetJc(A), dataN + 1);
         OSQPInt* Ai = (OSQPInt*)copyToOSQPIntVector(mxGetIr(A), Ap[dataN]);
         OSQPFloat * Ax = copyToOSQPFloatVector(mxGetPr(A), Ap[dataN]);
-        OSQPCscMatrix* dataA = new OSQPCscMatrix;
+        OSQPCscMatrix* dataA = (OSQPCscMatrix*)c_calloc(1,sizeof(OSQPCscMatrix));
         csc_set_data(dataA, dataM, dataN, Ap[dataN], Ax, Ai, Ap);
 
         // Create Settings
@@ -233,19 +233,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         exitflag = osqp_setup(&(osqpData->solver), dataP, dataQ, dataA, dataL, dataU, dataM, dataN, settings);
         //cleanup temporary structures
         // Data
-        if (Px)       free(Px);
-        if (Pi)       free(Pi);
-        if (Pp)       free(Pp);
-        if (Ax)       free(Ax);
-        if (Ai)       free(Ai);
-        if (Ap)       free(Ap);
-        if (dataQ)    free(dataQ);
-        if (dataL)    free(dataL);
-        if (dataU)    free(dataU);
-        if (dataP)    free(dataP);
-        if (dataA)    free(dataA);
+        if (Px)       c_free(Px);
+        if (Pi)       c_free(Pi);
+        if (Pp)       c_free(Pp);
+        if (Ax)       c_free(Ax);
+        if (Ai)       c_free(Ai);
+        if (Ap)       c_free(Ap);
+        if (dataQ)    c_free(dataQ);
+        if (dataL)    c_free(dataL);
+        if (dataU)    c_free(dataU);
+        if (dataP)    c_free(dataP);
+        if (dataA)    c_free(dataA);
         // Settings
-        if (settings) mxFree(settings);
+        if (settings) c_free(settings);
 
         // Report error (if any)
         if(exitflag){
@@ -345,13 +345,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                                       
 
         // Free vectors
-        if(!mxIsEmpty(q))  free(q_vec);
-        if(!mxIsEmpty(l))  free(l_vec);
-        if(!mxIsEmpty(u))  free(u_vec);
-        if(!mxIsEmpty(Px)) free(Px_vec);
-        if(!mxIsEmpty(Ax)) free(Ax_vec);
-        if(!mxIsEmpty(Px_idx)) free(Px_idx_vec);
-        if(!mxIsEmpty(Ax_idx)) free(Ax_idx_vec);
+        if(!mxIsEmpty(q))  c_free(q_vec);
+        if(!mxIsEmpty(l))  c_free(l_vec);
+        if(!mxIsEmpty(u))  c_free(u_vec);
+        if(!mxIsEmpty(Px)) c_free(Px_vec);
+        if(!mxIsEmpty(Ax)) c_free(Ax_vec);
+        if(!mxIsEmpty(Px_idx)) c_free(Px_idx_vec);
+        if(!mxIsEmpty(Ax_idx)) c_free(Ax_idx_vec);
 
         // Report errors (if any)
         switch (exitflag) {
@@ -405,8 +405,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       osqp_warm_start(osqpData->solver, x_vec, y_vec);
 
       // Free vectors
-      if(!x_vec) free(x_vec);
-      if(!y_vec) free(y_vec);
+      if(!x_vec) c_free(x_vec);
+      if(!y_vec) c_free(y_vec);
 
       return;
     }
@@ -605,7 +605,7 @@ OSQPFloat*    copyToOSQPFloatVector(double * vecData, OSQPInt numel){
   if (!vecData) return NULL;
 
   //This needs to be freed!
-  OSQPFloat* out = (OSQPFloat*)malloc(numel * sizeof(OSQPFloat));
+  OSQPFloat* out = (OSQPFloat*)c_malloc(numel * sizeof(OSQPFloat));
 
   //copy data
   for(OSQPInt i=0; i < numel; i++){
@@ -617,7 +617,7 @@ OSQPFloat*    copyToOSQPFloatVector(double * vecData, OSQPInt numel){
 //Dynamically creates a OSQPInt vector copy of the input.
 OSQPInt* copyToOSQPIntVector(mwIndex* vecData, OSQPInt numel){
   // This memory needs to be freed!
-  OSQPInt* out = (OSQPInt*)malloc(numel * sizeof(OSQPInt));
+  OSQPInt* out = (OSQPInt*)c_malloc(numel * sizeof(OSQPInt));
 
   //copy data
   for(OSQPInt i=0; i < numel; i++){
@@ -630,7 +630,7 @@ OSQPInt* copyToOSQPIntVector(mwIndex* vecData, OSQPInt numel){
 //Dynamically copies a double vector to OSQPInt.
 OSQPInt* copyDoubleToOSQPIntVector(double* vecData, OSQPInt numel){
   // This memory needs to be freed!
-  OSQPInt* out = (OSQPInt*)malloc(numel * sizeof(OSQPInt));
+  OSQPInt* out = (OSQPInt*)c_malloc(numel * sizeof(OSQPInt));
 
   //copy data
   for(OSQPInt i=0; i < numel; i++){
@@ -650,10 +650,10 @@ void castCintToDoubleArr(OSQPInt *arr, double* arr_out, OSQPInt len) {
 //This function frees the memory allocated in an OSQPCscMatrix M
 void freeCscMatrix(OSQPCscMatrix* M) {
     if (!M) return;
-    if (M->p) free(M->p);
-    if (M->i) free(M->i);
-    if (M->x) free(M->x);
-    free(M);
+    if (M->p) c_free(M->p);
+    if (M->i) c_free(M->i);
+    if (M->x) c_free(M->x);
+    c_free(M);
 }
 
 void castToDoubleArr(OSQPFloat *arr, double* arr_out, OSQPInt len) {
@@ -802,5 +802,5 @@ void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OSQPSolver* osqpSolver){
   update_template->rho = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
 
   osqp_update_settings(osqpSolver, update_template);
-  if (update_template) free(update_template);
+  if (update_template) c_free(update_template);
 }
