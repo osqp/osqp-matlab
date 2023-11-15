@@ -17,7 +17,7 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 endif()
 
 # Insist on the pre-2018 complex data API so that mxGetPr will work correctly
-add_compile_definitions( MATLAB_MEXSRC_RELEASE=R2017b )
+    add_compile_definitions( MATLAB_MEXSRC_RELEASE=R2017b )
 message( STATUS "Using Matlab pre-2018a API for mxGetPr compatibility" )
 
 # Some parts of the main libraries need to know we are building for MATLAB
@@ -50,9 +50,18 @@ add_subdirectory( osqp_sources )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/osqp_sources/include/public
                      ${CMAKE_CURRENT_SOURCE_DIR}/osqp_sources/include/private )
 
+# Interrupt support requires the libut library
+if( WIN32 )
+    get_filename_component( Matlab_EXTERN_LIB_DIR ${Matlab_MEX_LIBRARY} DIRECTORY )
+    set( UT_LIBRARY "${Matlab_EXTERN_LIB_DIR}/libut.lib" )
+else()
+    set( UT_LIBRARY "-lut" )
+endif()
+
 matlab_add_mex( NAME osqp_mex
                 SRC ${CMAKE_CURRENT_SOURCE_DIR}/osqp_mex.cpp
                     ${CMAKE_CURRENT_SOURCE_DIR}/interrupt_matlab.c
                 LINK_TO osqpstatic
+                        ${UT_LIBRARY}
                 # Force compilation in the traditional C API (equivalent to the -R2017b flag)
                 R2017b )
