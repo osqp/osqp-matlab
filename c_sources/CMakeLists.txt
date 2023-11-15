@@ -51,11 +51,12 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/osqp_sources/include/public
                      ${CMAKE_CURRENT_SOURCE_DIR}/osqp_sources/include/private )
 
 # Interrupt support requires the libut library
+get_filename_component( Matlab_LIB_DIR ${Matlab_MEX_LIBRARY} DIRECTORY )
+
 if( WIN32 )
-    get_filename_component( Matlab_EXTERN_LIB_DIR ${Matlab_MEX_LIBRARY} DIRECTORY )
-    set( UT_LIBRARY "${Matlab_EXTERN_LIB_DIR}/libut.lib" )
+    set( UT_LIBRARY "${Matlab_LIB_DIR}/libut.lib" )
 else()
-    set( UT_LIBRARY "-lut" )
+    set( UT_LIBRARY "-L${Matlab_LIB_DIR} -lut" )
 endif()
 
 matlab_add_mex( NAME osqp_mex
