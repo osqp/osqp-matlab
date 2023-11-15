@@ -2,6 +2,7 @@
 #include "matrix.h"
 #include "osqp_mex.hpp"
 #include "osqp.h"
+#include "memory_matlab.h"
 
 //c_int is replaced with OSQPInt
 //c_float is replaced with OSQPFloat
