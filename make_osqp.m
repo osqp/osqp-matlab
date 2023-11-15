@@ -70,9 +70,11 @@ if( any(strcmpi(what,'osqp_mex')) || any(strcmpi(what,'all')) )
         setenv('PATH', [PATH ':/usr/local/bin']);
     end
 
+
+
     %% Configure CMake for the mex interface
     fprintf('  Configuring...' )
-    [status, output] = system( sprintf( 'cmake -B %s -S %s -DMatlab_ROOT_DIR=\"%s\"', osqp_mex_build_dir, osqp_mex_src_dir, Matlab_ROOT ), 'LD_LIBRARY_PATH', '' );
+    [status, output] = system( sprintf( 'cmake -B %s -S %s -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMatlab_ROOT_DIR=\"%s\"', osqp_mex_build_dir, osqp_mex_src_dir, Matlab_ROOT ), 'LD_LIBRARY_PATH', '' );
     if( status )
         fprintf( '\n' );
         disp( output );
@@ -86,7 +88,7 @@ if( any(strcmpi(what,'osqp_mex')) || any(strcmpi(what,'all')) )
 
     %% Build the mex interface
     fprintf( '  Building...')
-    [status, output] = system( sprintf( 'cmake --build %s', osqp_mex_build_dir ), 'LD_LIBRARY_PATH', '' );
+    [status, output] = system( sprintf( 'cmake --build %s --config Release', osqp_mex_build_dir ), 'LD_LIBRARY_PATH', '' );
     if( status )
         fprintf( '\n' );
         disp( output );
@@ -103,7 +105,11 @@ if( any(strcmpi(what,'osqp_mex')) || any(strcmpi(what,'all')) )
     fprintf( '  Installing...' )
     
     % Copy mex file to root directory for use
-    [err, errmsg, ~] = copyfile( [osqp_mex_build_dir, filesep, 'osqp_mex.mex*'],  makefile_path );
+    if( ispc )
+        [err, errmsg, ~] = copyfile( [osqp_mex_build_dir, filesep, 'Release', filesep, 'osqp_mex.mex*'],  makefile_path );
+    else
+        [err, errmsg, ~] = copyfile( [osqp_mex_build_dir, filesep, 'osqp_mex.mex*'],  makefile_path );
+    end
     if( ~err )
         fprintf( '\n' )
         disp( errmsg )
