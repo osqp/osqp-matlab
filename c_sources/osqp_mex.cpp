@@ -784,22 +784,41 @@ void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OSQPSolver* osqpSolver){
   OSQPInt exitflag;
   //TODO (Amit): Update this
   OSQPSettings* update_template = (OSQPSettings *)mxCalloc(1,sizeof(OSQPSettings));
-  if (!update_template) mexErrMsgTxt("Failed to allocate temporary OSQPSettings object.");
+  if (!update_template) mexErrMsgTxt("Failed to allocate a temporary OSQPSettings object.");
 
-  update_template->max_iter = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "max_iter"));
-  update_template->eps_abs = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_abs"));
-  update_template->eps_rel = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_rel"));
-  update_template->eps_prim_inf = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_prim_inf"));
-  update_template->eps_dual_inf = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
-  update_template->alpha = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "alpha"));
-  update_template->delta = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "delta"));
-  update_template->polish_refine_iter = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "polish_refine_iter"));
-  update_template->verbose = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "verbose"));
-  update_template->scaled_termination = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "scaled_termination"));
-  update_template->check_termination = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "check_termination"));
-  update_template->warm_starting = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "warm_starting"));
-  update_template->time_limit = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "time_limit"));
-  update_template->rho = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
+  update_template->device                 = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "device"));
+  update_template->linsys_solver          = (enum osqp_linsys_solver_type)mxGetScalar(mxGetField(mxPtr, 0, "linsys_solver"));
+  update_template->verbose                = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "verbose"));
+  update_template->warm_starting          = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "warm_starting"));
+  update_template->scaling                = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "scaling"));
+  update_template->polishing              = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "polishing"));
+
+  update_template->rho                    = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
+  update_template->rho_is_vec             = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "rho_is_vec"));
+  update_template->sigma                  = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "sigma"));
+  update_template->alpha                  = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "alpha"));
+
+  update_template->cg_max_iter            = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "cg_max_iter"));
+  update_template->cg_tol_reduction       = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "cg_tol_reduction"));
+  update_template->cg_tol_fraction        = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "cg_tol_fraction"));
+  update_template->cg_precond             = (osqp_precond_type)mxGetScalar(mxGetField(mxPtr, 0, "cg_precond"));
+  
+  update_template->adaptive_rho           = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho"));
+  update_template->adaptive_rho_interval  = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_interval"));
+  update_template->adaptive_rho_fraction  = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_fraction"));
+  update_template->adaptive_rho_tolerance = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "adaptive_rho_tolerance"));
+
+  update_template->max_iter               = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "max_iter"));
+  update_template->eps_abs                = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_abs"));
+  update_template->eps_rel                = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_rel"));
+  update_template->eps_prim_inf           = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_prim_inf"));
+  update_template->eps_dual_inf           = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "eps_dual_inf"));
+  update_template->scaled_termination     = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "scaled_termination"));
+  update_template->check_termination      = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "check_termination"));
+  update_template->time_limit             = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "time_limit"));
+
+  update_template->delta                  = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "delta"));
+  update_template->polish_refine_iter     = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "polish_refine_iter"));
 
   osqp_update_settings(osqpSolver, update_template);
   if (update_template) c_free(update_template);
