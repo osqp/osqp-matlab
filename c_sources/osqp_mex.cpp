@@ -735,6 +735,7 @@ mxArray* copySettingsToMxStruct(OSQPSettings* settings){
   mxSetField(mxPtr, 0, "cg_tol_reduction",       mxCreateDoubleScalar(settings->cg_tol_reduction));
   mxSetField(mxPtr, 0, "cg_tol_fraction",        mxCreateDoubleScalar(settings->cg_tol_fraction));
   mxSetField(mxPtr, 0, "time_limit",             mxCreateDoubleScalar(settings->time_limit));
+  mxSetField(mxPtr, 0, "cg_precond",             mxCreateDoubleScalar(settings->cg_precond));
   return mxPtr;
 }
 
