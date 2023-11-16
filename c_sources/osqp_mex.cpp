@@ -822,5 +822,9 @@ void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OSQPSolver* osqpSolver){
   update_template->polish_refine_iter     = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "polish_refine_iter"));
 
   osqp_update_settings(osqpSolver, update_template);
+  //rho needs to be updated separetly, it is not updated in osqp_update_settings
+  OSQPFloat rho_new = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
+  if (rho_new != osqpSolver->settings->rho) osqp_update_rho(osqpSolver, rho_new);
+
   if (update_template) c_free(update_template);
 }
