@@ -10,6 +10,10 @@ message( STATUS "Matlab root is " ${Matlab_ROOT_DIR} )
 
 include_directories( ${Matlab_INCLUDE_DIRS} )
 
+# The mex interface uses C++11
+set( CMAKE_CXX_STANDARD 11 )
+set( CMAKE_CXX_STANDARD_REQUIRED ON )
+
 if( CMAKE_COMPILER_IS_GNUCXX )
     # Add debug symbols and optimizations to the build
     set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2" )

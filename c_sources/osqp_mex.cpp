@@ -4,6 +4,8 @@
 #include "osqp.h"
 #include "memory_matlab.h"
 
+#include <map>
+
 //c_int is replaced with OSQPInt
 //c_float is replaced with OSQPFloat
 
@@ -503,90 +505,54 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     if (!strcmp("constant", cmd)) { // Return solver constants
+        static std::map<std::string, OSQPFloat> floatConstants{
+            // Numerical constants
+            {"OSQP_INFTY", OSQP_INFTY}
+        };
 
-        char constant[32];
-        mxGetString(prhs[2], constant, sizeof(constant));
+        static std::map<std::string, OSQPInt> intConstants{
+            // Return codes
+            {"OSQP_SOLVED",                       OSQP_SOLVED},
+            {"OSQP_SOLVED_INACCURATE",            OSQP_SOLVED_INACCURATE},
+            {"OSQP_UNSOLVED",                     OSQP_UNSOLVED},
+            {"OSQP_PRIMAL_INFEASIBLE",            OSQP_PRIMAL_INFEASIBLE},
+            {"OSQP_PRIMAL_INFEASIBLE_INACCURATE", OSQP_PRIMAL_INFEASIBLE_INACCURATE},
+            {"OSQP_DUAL_INFEASIBLE",              OSQP_DUAL_INFEASIBLE},
+            {"OSQP_DUAL_INFEASIBLE_INACCURATE",   OSQP_DUAL_INFEASIBLE_INACCURATE},
+            {"OSQP_MAX_ITER_REACHED",             OSQP_MAX_ITER_REACHED},
+            {"OSQP_NON_CVX",                      OSQP_NON_CVX},
+            {"OSQP_TIME_LIMIT_REACHED",           OSQP_TIME_LIMIT_REACHED},
 
-        if (!strcmp("OSQP_INFTY", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_INFTY);
+            // Linear system solvers
+            {"QDLDL_SOLVER",         QDLDL_SOLVER},
+            {"OSQP_UNKNOWN_SOLVER",  OSQP_UNKNOWN_SOLVER},
+            {"OSQP_DIRECT_SOLVER",   OSQP_DIRECT_SOLVER},
+            {"OSQP_INDIRECT_SOLVER", OSQP_INDIRECT_SOLVER}
+        };
+
+        char constant[64];
+        int  constantLength = mxGetN(prhs[2]) + 1;
+        mxGetString(prhs[2], constant, constantLength);
+
+        auto ci = intConstants.find(constant);
+
+        if(ci != intConstants.end()) {
+            plhs[0] = mxCreateDoubleScalar(ci->second);
             return;
         }
+
+        auto cf = floatConstants.find(constant);
+
+        if(cf != floatConstants.end()) {
+            plhs[0] = mxCreateDoubleScalar(cf->second);
+            return;
+        }
+
+        // NaN is special because we need the Matlab version
         if (!strcmp("OSQP_NAN", constant)){
             plhs[0] = mxCreateDoubleScalar(mxGetNaN());
             return;
         }
-
-        if (!strcmp("OSQP_SOLVED", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_SOLVED);
-            return;
-        }
-
-        if (!strcmp("OSQP_SOLVED_INACCURATE", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_SOLVED_INACCURATE);
-            return;
-        }
-
-        if (!strcmp("OSQP_UNSOLVED", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_UNSOLVED);
-            return;
-        }
-
-        if (!strcmp("OSQP_PRIMAL_INFEASIBLE", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_PRIMAL_INFEASIBLE);
-            return;
-        }
-
-        if (!strcmp("OSQP_PRIMAL_INFEASIBLE_INACCURATE", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_PRIMAL_INFEASIBLE_INACCURATE);
-            return;
-        }
-
-        if (!strcmp("OSQP_DUAL_INFEASIBLE", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_DUAL_INFEASIBLE);
-            return;
-        }
-
-        if (!strcmp("OSQP_DUAL_INFEASIBLE_INACCURATE", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_DUAL_INFEASIBLE_INACCURATE);
-            return;
-        }
-
-        if (!strcmp("OSQP_MAX_ITER_REACHED", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_MAX_ITER_REACHED);
-            return;
-        }
-
-        if (!strcmp("OSQP_NON_CVX", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_NON_CVX);
-            return;
-        }
-
-        if (!strcmp("OSQP_TIME_LIMIT_REACHED", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_TIME_LIMIT_REACHED);
-            return;
-        }
-
-        // Linear system solvers
-        if (!strcmp("QDLDL_SOLVER", constant)){
-            plhs[0] = mxCreateDoubleScalar(QDLDL_SOLVER);
-            return;
-        }
-
-        if (!strcmp("OSQP_UNKNOWN_SOLVER", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_UNKNOWN_SOLVER);
-            return;
-        }
-
-        if (!strcmp("OSQP_DIRECT_SOLVER", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_DIRECT_SOLVER);
-            return;
-        }
-        
-        if (!strcmp("OSQP_INDIRECT_SOLVER", constant)){
-            plhs[0] = mxCreateDoubleScalar(OSQP_INDIRECT_SOLVER);
-            return;
-        }
-
 
         mexErrMsgTxt("Constant not recognized.");
 
