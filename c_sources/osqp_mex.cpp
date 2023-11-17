@@ -158,6 +158,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }
 
+    // Update rho value
+    if (!strcmp("update_rho", cmd)) {
+        //throw an error if this is called before solver is configured
+        if(!osqpData->solver){
+            mexErrMsgTxt("Solver is uninitialized.  No settings have been configured.");
+        }
+    
+        OSQPFloat rho = (OSQPFloat)mxGetScalar(prhs[2]);
+
+        osqp_update_rho(osqpData->solver, rho);
+        return;
+    }
+
     // report the default settings
     if (!strcmp("default_settings", cmd)) {
         // Warn if other commands were ignored
@@ -822,9 +835,6 @@ void copyUpdatedSettingsToWork(const mxArray* mxPtr ,OSQPSolver* osqpSolver){
   update_template->polish_refine_iter     = (OSQPInt)mxGetScalar(mxGetField(mxPtr, 0, "polish_refine_iter"));
 
   osqp_update_settings(osqpSolver, update_template);
-  //rho needs to be updated separetly, it is not updated in osqp_update_settings
-  OSQPFloat rho_new = (OSQPFloat)mxGetScalar(mxGetField(mxPtr, 0, "rho"));
-  if (rho_new != osqpSolver->settings->rho) osqp_update_rho(osqpSolver, rho_new);
 
   if (update_template) c_free(update_template);
 }

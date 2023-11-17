@@ -38,7 +38,6 @@ classdef osqp < handle
 
 	        % Convert linsys solver to string
 	        out.linsys_solver = linsys_solver_to_string(out.linsys_solver);
-
         end
         
         %%
@@ -79,19 +78,6 @@ classdef osqp < handle
 
             % Convert linsys solver to string
             out.linsys_solver = linsys_solver_to_string(out.linsys_solver);
-
-        end
-
-        function update_settings(this, varargin)
-            % UPDATE_SETTINGS update the current solver settings structure
-        
-            %second input 'false' means that this is *not* a settings
-            %initialization, so some parameter/values will be disallowed
-            newSettings = validate_settings(this, false, varargin{:});
-        
-            %write the solver settings.  C-mex does not check input
-            %data or protect against disallowed parameter modifications
-            osqp_mex('update_settings', this.objectHandle, newSettings);
         end
 
         %%
@@ -99,7 +85,6 @@ classdef osqp < handle
             % GET_DIMENSIONS get the number of variables and constraints
 
             [n,m] = osqp_mex('get_dimensions', this.objectHandle);
-
         end
     end
 end
