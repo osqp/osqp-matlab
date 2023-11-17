@@ -9,17 +9,12 @@ function make_osqp(varargin)
 %
 %    {}, '' (empty string) or 'all': build all components and link.
 %
-%    'osqp': builds the OSQP solver using CMake
-%
-%    'osqp_mex': builds the OSQP mex interface and links it to the OSQP
-%    library
-%
-%    VARARGIN{1:NARGIN-1} specifies the optional flags passed to the compiler
+%    'osqp_mex': builds the OSQP mex interface and the OSQP library
 %
 %    Additional commands:
 %
-%    'clean': delete all object files (.o and .obj)
-%    'purge' : same as above, and also delete the mex files.
+%    'clean': Delete all compiled files
+%    'purge': Delete all compiled files and copied code generation files
 
 
 if( nargin == 0 )
@@ -31,7 +26,6 @@ elseif ( nargin == 1 && ismember('-verbose', varargin) )
 else
     what = varargin{nargin};
     if(isempty(strfind(what, 'all'))        && ...
-        isempty(strfind(what, 'osqp'))      && ...
         isempty(strfind(what, 'osqp_mex'))  && ...
         isempty(strfind(what, 'clean'))     && ...
         isempty(strfind(what, 'purge')))
@@ -41,231 +35,107 @@ else
     verbose = ismember('-verbose', varargin);
 end
 
-%% Try to unlock any pre-existing version of osqp_mex
+%% Determine where the various files are all located
+% Various parts of the build system
+[makefile_path,~,~] = fileparts( which( 'make_osqp.m' ) );
+osqp_mex_src_dir = fullfile( makefile_path, 'c_sources' );
+osqp_mex_build_dir = fullfile( osqp_mex_src_dir, 'build' );
+osqp_cg_src_dir = fullfile( osqp_mex_build_dir, 'codegen_src' );
+osqp_cg_dest_dir = fullfile( makefile_path, 'codegen', 'sources' );
 
+% Determine where CMake should look for MATLAB
+Matlab_ROOT = strrep( matlabroot, '\', '/' );
+
+%% Try to unlock any pre-existing version of osqp_mex
 % this prevents compile errors if a user builds, runs osqp
 % and then tries to recompile
 if(mislocked('osqp_mex'))
     munlock('osqp_mex');
 end
 
+%% Configure, build and install the OSQP mex interface
+if( any(strcmpi(what,'osqp_mex')) || any(strcmpi(what,'all')) )
+   fprintf('Compiling OSQP solver mex interface...\n');
 
-
-%% Basic compile commands
-
-% Get make and mex commands
-make_cmd = 'cmake --build .';
-mex_cmd = sprintf('mex -O -silent');
-mex_libs = '';
-
-
-% Add arguments to cmake and mex compiler
-cmake_args = '-DMATLAB=ON';
-mexoptflags = '-DMATLAB';
-
-% Add specific generators for windows linux or mac
-if (ispc)
-    cmake_args = sprintf('%s %s', cmake_args, '-G "MinGW Makefiles"');
-else
-    cmake_args = sprintf('%s %s', cmake_args, '-G "Unix Makefiles"');
-end
-
-% Pass Matlab root to cmake
-Matlab_ROOT = strrep(matlabroot, '\', '/');
-cmake_args = sprintf('%s %s%s%s', cmake_args, ...
-    '-DMatlab_ROOT_DIR="', Matlab_ROOT, '"');
-
-% Add parameters options to mex and cmake
-% CTRLC
-if (ispc)
-   ut = fullfile(matlabroot, 'extern', 'lib', computer('arch'), ...
-                 'mingw64', 'libut.lib');
-   mex_libs = sprintf('%s "%s"', mex_libs, ut);
-else
-   mex_libs = sprintf('%s %s', mex_libs, '-lut');
-end
-% Shared library loading
-if (isunix && ~ismac)
-   mex_libs = sprintf('%s %s', mex_libs, '-ldl');
-end
-
-% Add large arrays support if computer is 64 bit and a pre-2018 version
-% Release R2018a corresponds to Matlab version 9.4
-if (~isempty(strfind(computer, '64')) && verLessThan('matlab', '9.4'))
-    mexoptflags = sprintf('%s %s', mexoptflags, '-largeArrayDims');
-end
-
-%Force Matlab to respect old-style usage of mxGetPr in releases after 2018a,
-%which use interleaved complex data.   Note that the -R2017b flag is badly
-%named since it indicates that non-interleaved complex data model is being used;
-%it is not really specific to the release year
-if ~verLessThan('matlab', '9.4')
-    mexoptflags = sprintf('%s %s', mexoptflags, '-R2017b');
-end
-
-
-% Set optimizer flag
-if (~ispc)
-    mexoptflags = sprintf('%s %s', mexoptflags, 'COPTIMFLAGS=''-O3''');
-end
-
-% Set library extension
-lib_ext = '.a';
-lib_name = sprintf('libosqp%s', lib_ext);
-
-
-% Set osqp directory and osqp_build directory
-current_dir = pwd;
-[makefile_path,~,~] = fileparts(which('make_osqp.m'));
-osqp_dir = fullfile(makefile_path, 'osqp_sources');
-osqp_build_dir = fullfile(osqp_dir, 'build');
-qdldl_dir = fullfile(osqp_dir, 'lin_sys', 'direct', 'qdldl');
-cg_sources_dir = fullfile('.', 'codegen', 'sources');
-
-% Include directory
-inc_dir = [
-    fullfile(sprintf(' -I%s', osqp_dir), 'include'), ...
-    sprintf(' -I%s', qdldl_dir), ...
-    fullfile(sprintf(' -I%s', qdldl_dir), 'qdldl_sources', 'include')];
-
-
-%% OSQP Solver
-if( any(strcmpi(what,'osqp')) || any(strcmpi(what,'all')) )
-   fprintf('Compiling OSQP solver...');
-
-    % Create build directory and go inside
-    if exist(osqp_build_dir, 'dir')
-        rmdir(osqp_build_dir, 's');
+    % Create build for the mex file and go inside
+    if exist( osqp_mex_build_dir, 'dir' )
+        rmdir( osqp_mex_build_dir, 's' );
     end
-    mkdir(osqp_build_dir);
-    cd(osqp_build_dir);
+    mkdir( osqp_mex_build_dir );
+%    cd( osqp_mex_build_dir );
 
     % Extend path for CMake mac (via Homebrew)
     PATH = getenv('PATH');
-    if ((ismac) && (isempty(strfind(PATH, '/usr/local/bin'))))
+    if( (ismac) && (isempty(strfind(PATH, '/usr/local/bin'))) )
         setenv('PATH', [PATH ':/usr/local/bin']);
     end
 
-    % Compile static library with CMake
-    [status, output] = system(sprintf('%s %s ..', 'cmake', cmake_args));
-    if(status)
-        fprintf('\n');
-        disp(output);
-        error('Error configuring CMake environment');
-    elseif(verbose)
-        fprintf('\n');
-        disp(output);
+
+
+    %% Configure CMake for the mex interface
+    fprintf('  Configuring...' )
+    [status, output] = system( sprintf( 'cmake -B %s -S %s -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMatlab_ROOT_DIR=\"%s\"', osqp_mex_build_dir, osqp_mex_src_dir, Matlab_ROOT ), 'LD_LIBRARY_PATH', '' );
+    if( status )
+        fprintf( '\n' );
+        disp( output );
+        error( 'Error configuring CMake environment' );
+    elseif( verbose )
+        fprintf( '\n' );
+        disp( output );
+    else
+        fprintf( '\t\t\t\t\t[done]\n' );
     end
 
-    [status, output] = system(sprintf('%s %s', make_cmd, '--target osqpstatic'));
-    if (status)
-        fprintf('\n');
-        disp(output);
-        error('Error compiling OSQP');
-    elseif(verbose)
-        fprintf('\n');
-        disp(output);
+    %% Build the mex interface
+    fprintf( '  Building...')
+    [status, output] = system( sprintf( 'cmake --build %s --config Release', osqp_mex_build_dir ), 'LD_LIBRARY_PATH', '' );
+    if( status )
+        fprintf( '\n' );
+        disp( output );
+        error( 'Error compiling OSQP mex interface' );
+    elseif( verbose )
+        fprintf( '\n' );
+        disp( output );
+    else
+        fprintf( '\t\t\t\t\t\t[done]\n' );
     end
 
-
-    % Change directory back to matlab interface
-    cd(makefile_path);
-
-    % Copy static library to current folder
-    lib_origin = fullfile(osqp_build_dir, 'out', lib_name);
-    copyfile(lib_origin, lib_name);
-
-    fprintf('\t\t\t\t\t\t[done]\n');
-
-end
-
-%% osqpmex
-if( any(strcmpi(what,'osqp_mex')) || any(strcmpi(what,'all')) )
-    % Compile interface
-    fprintf('Compiling and linking osqpmex...');
-
-    % Compile command
-    %cmd = sprintf('%s %s %s %s osqp_mex.cpp', mex_cmd, mexoptflags, inc_dir, lib_name);
-    cmd = sprintf('%s %s %s %s osqp_mex.cpp %s', ...
-        mex_cmd, mexoptflags, inc_dir, lib_name, mex_libs);
-
-    % Compile
-    eval(cmd);
-    fprintf('\t\t\t\t\t[done]\n');
-
-end
-
-
-%% codegen
-if( any(strcmpi(what,'codegen')) || any(strcmpi(what,'all')) )
-    fprintf('Copying source files for codegen...');
-
-    % Copy C files
-    cg_src_dir = fullfile(cg_sources_dir, 'src');
-    if ~exist(cg_src_dir, 'dir')
-        mkdir(cg_src_dir);
-    end
-    cdirs  = {fullfile(osqp_dir, 'src'),...
-              fullfile(qdldl_dir),...
-              fullfile(qdldl_dir, 'qdldl_sources', 'src')};
-    for j = 1:length(cdirs)
-        cfiles = dir(fullfile(cdirs{j},'*.c'));
-        for i = 1 : length(cfiles)
-            if ~any(strcmp(cfiles(i).name, {'cs.c', 'ctrlc.c', 'lin_sys.c', 'polish.c'}))
-                copyfile(fullfile(cdirs{j}, cfiles(i).name), ...
-                    fullfile(cg_src_dir, cfiles(i).name));
-            end
-        end
-    end
-
-    % Copy H files
-    cg_include_dir = fullfile(cg_sources_dir, 'include');
-    if ~exist(cg_include_dir, 'dir')
-        mkdir(cg_include_dir);
-    end
-    hdirs  = {fullfile(osqp_dir, 'include'),...
-              fullfile(qdldl_dir),...
-              fullfile(qdldl_dir, 'qdldl_sources', 'include')};
-    for j = 1:length(hdirs)
-        hfiles = dir(fullfile(hdirs{j},'*.h'));
-        for i = 1 : length(hfiles)
-            if ~any(strcmp(hfiles(i).name, {'qdldl_types.h', 'osqp_configure.h', ...
-                    'cs.h', 'ctrlc.h', 'lin_sys.h', 'polish.h'}))
-                copyfile(fullfile(hdirs{j}, hfiles(i).name), ...
-                    fullfile(cg_include_dir, hfiles(i).name));
-            end
-        end
-    end
-
-    % Copy configure files
-    cg_configure_dir = fullfile(cg_sources_dir, 'configure');
-    if ~exist(cg_configure_dir, 'dir')
-        mkdir(cg_configure_dir);
-    end
-    configure_dirs  = {fullfile(osqp_dir, 'configure'),...
-                       fullfile(qdldl_dir, 'qdldl_sources', 'configure')};
-    for j = 1:length(configure_dirs)
-        configure_files = dir(fullfile(configure_dirs{j},'*.h.in'));
-        for i = 1 : length(configure_files)
-            copyfile(fullfile(configure_dirs{j}, configure_files(i).name), ...
-                fullfile(cg_configure_dir, configure_files(i).name));
-        end
-    end
     
-    % Copy cmake files    
-    copyfile(fullfile(osqp_dir, 'src', 'CMakeLists.txt'), ...
-                    fullfile(cg_src_dir, 'CMakeLists.txt'));
-    copyfile(fullfile(osqp_dir, 'include', 'CMakeLists.txt'), ...
-                    fullfile(cg_include_dir, 'CMakeLists.txt'));
-                
-    fprintf('\t\t\t\t\t[done]\n');
+    %% Install various files
+    fprintf( '  Installing...' )
+    
+    % Copy mex file to root directory for use
+    if( ispc )
+        [err, errmsg, ~] = copyfile( [osqp_mex_build_dir, filesep, 'Release', filesep, 'osqp_mex.mex*'],  makefile_path );
+    else
+        [err, errmsg, ~] = copyfile( [osqp_mex_build_dir, filesep, 'osqp_mex.mex*'],  makefile_path );
+    end
+    if( ~err )
+        fprintf( '\n' )
+        disp( errmsg )
+        error( '  Error copying mex file' )
+    end
 
+    % Copy the code generation source files
+    % Create build for the mex file and go inside
+    if exist( osqp_cg_dest_dir, 'dir' )
+        rmdir( osqp_cg_dest_dir, 's' );
+    end
+    mkdir( osqp_cg_dest_dir );
+
+    [err, errmsg, ~] = copyfile( [osqp_cg_src_dir, filesep, '*'], osqp_cg_dest_dir );
+    if( ~err )
+        fprintf( '\n' )
+        disp( errmsg )
+        error( '  Error copying code generation source files' )
+    end
+
+    fprintf( '\t\t\t\t\t\t[done]\n' );
 end
 
-
-%% clean
+%% Clean and purge
 if( any(strcmpi(what,'clean')) || any(strcmpi(what,'purge')) )
-    fprintf('Cleaning mex files and library...');
+    fprintf('Cleaning OSQP mex files and build directory...');
 
     % Delete mex file
     mexfiles = dir(['*.', mexext]);
@@ -273,35 +143,25 @@ if( any(strcmpi(what,'clean')) || any(strcmpi(what,'purge')) )
         delete(mexfiles(i).name);
     end
 
-    % Delete static library
-    lib_full_path = fullfile(makefile_path, lib_name);
-    if( exist(lib_full_path,'file') )
-        delete(lib_full_path);
-    end
-
-    fprintf('\t\t\t[done]\n');
-end
-
-
-%% purge
-if( any(strcmpi(what,'purge')) )
-    fprintf('Cleaning OSQP build and codegen directories...');
-
     % Delete OSQP build directory
-    if exist(osqp_build_dir, 'dir')
-        rmdir(osqp_build_dir, 's');
-    end
-
-    % Delete codegen files
-    if exist(cg_sources_dir, 'dir')
-        rmdir(cg_sources_dir, 's');
+    if exist(osqp_mex_build_dir, 'dir')
+        rmdir(osqp_mex_build_dir, 's');
     end
 
     fprintf('\t\t[done]\n');
+
+    %% Purge only
+    if( any(strcmpi(what,'purge')) )
+        fprintf('Cleaning OSQP codegen directories...');
+
+        % Delete codegen files
+        if exist(osqp_cg_dest_dir, 'dir')
+            rmdir(osqp_cg_dest_dir, 's');
+        end
+
+        fprintf('\t\t\t[done]\n');
+    end
+
 end
-
-
-%% Go back to the original directory
-cd(current_dir);
 
 end

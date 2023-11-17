@@ -170,7 +170,7 @@ classdef basic_tests < matlab.unittest.TestCase
         end
 
         function test_update_time_limit(testCase)
-            testCase.verifyEqual(testCase.options.time_limit, 0)
+            testCase.verifyEqual(testCase.options.time_limit, 1e10)
 
             results = testCase.solver.solve();
             testCase.verifyEqual(results.info.status_val, ...
