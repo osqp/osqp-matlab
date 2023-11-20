@@ -92,12 +92,12 @@ OSQPSettings* OSQPSettingsWrapper::GetOSQPSettingsCopy() {
     OSQPSettings* ret = static_cast<OSQPSettings*>(c_calloc(1, sizeof(OSQPSettings)));
     
     // Copy the current settings for their return
-    std::memcpy(ret, m_settings, sizeof(ret));
+    std::memcpy(ret, m_settings, sizeof(OSQPSettings));
 
     return ret;
 }
 
 
 void OSQPSettingsWrapper::ParseOSQPSettings(const OSQPSettings* aSettings) {
-    std::memcpy(m_settings, aSettings, sizeof(m_settings));
+    std::memcpy(m_settings, aSettings, sizeof(OSQPSettings));
 }
