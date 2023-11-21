@@ -7,6 +7,7 @@
 // Mex-specific functionality
 #include "osqp_mex.hpp"
 #include "osqp_struct.h"
+#include "arrays_matlab.h"
 #include "memory_matlab.h"
 
 //c_int is replaced with OSQPInt
@@ -28,13 +29,8 @@ public:
 
 // internal utility functions
 OSQPSolver*    initializeOSQPSolver();
-void           castToDoubleArr(OSQPFloat *arr, double* arr_out, OSQPInt len);
 void           setToNaN(double* arr_out, OSQPInt len);
-//void           castCintToDoubleArr(OSQPInt *arr, double* arr_out, OSQPInt len); //DELETE HERE
 void           freeCscMatrix(OSQPCscMatrix* M);
-OSQPInt*       copyToOSQPIntVector(mwIndex * vecData, OSQPInt numel);
-OSQPInt*       copyDoubleToOSQPIntVector(double* vecData, OSQPInt numel);
-OSQPFloat*     copyToOSQPFloatVector(double * vecData, OSQPInt numel);
 
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -168,21 +164,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         OSQPInt dataN      = (OSQPInt)mxGetScalar(prhs[2]);
         OSQPInt dataM      = (OSQPInt)mxGetScalar(prhs[3]);
-        OSQPFloat* dataQ   = copyToOSQPFloatVector(mxGetPr(q), dataN);
-        OSQPFloat* dataL   = copyToOSQPFloatVector(mxGetPr(l), dataM);
-        OSQPFloat* dataU   = copyToOSQPFloatVector(mxGetPr(u), dataM);
+        OSQPFloat* dataQ   = cloneVector<OSQPFloat>(mxGetPr(q), dataN);
+        OSQPFloat* dataL   = cloneVector<OSQPFloat>(mxGetPr(l), dataM);
+        OSQPFloat* dataU   = cloneVector<OSQPFloat>(mxGetPr(u), dataM);
 
         // Matrix P:  nnz = P->p[n]
-        OSQPInt * Pp = (OSQPInt*)copyToOSQPIntVector(mxGetJc(P), dataN + 1);
-        OSQPInt * Pi = (OSQPInt*)copyToOSQPIntVector(mxGetIr(P), Pp[dataN]);
-        OSQPFloat * Px = copyToOSQPFloatVector(mxGetPr(P), Pp[dataN]);
+        OSQPInt * Pp = cloneVector<OSQPInt>(mxGetJc(P), dataN + 1);
+        OSQPInt * Pi = cloneVector<OSQPInt>(mxGetIr(P), Pp[dataN]);
+        OSQPFloat * Px = cloneVector<OSQPFloat>(mxGetPr(P), Pp[dataN]);
         OSQPCscMatrix* dataP = (OSQPCscMatrix*)c_calloc(1,sizeof(OSQPCscMatrix));
         csc_set_data(dataP, dataN, dataN, Pp[dataN], Px, Pi, Pp);
 
         // Matrix A: nnz = A->p[n]
-        OSQPInt* Ap = (OSQPInt*)copyToOSQPIntVector(mxGetJc(A), dataN + 1);
-        OSQPInt* Ai = (OSQPInt*)copyToOSQPIntVector(mxGetIr(A), Ap[dataN]);
-        OSQPFloat * Ax = copyToOSQPFloatVector(mxGetPr(A), Ap[dataN]);
+        OSQPInt* Ap = cloneVector<OSQPInt>(mxGetJc(A), dataN + 1);
+        OSQPInt* Ai = cloneVector<OSQPInt>(mxGetIr(A), Ap[dataN]);
+        OSQPFloat * Ax = cloneVector<OSQPFloat>(mxGetPr(A), Ap[dataN]);
         OSQPCscMatrix* dataA = (OSQPCscMatrix*)c_calloc(1,sizeof(OSQPCscMatrix));
         csc_set_data(dataA, dataM, dataN, Ap[dataN], Ax, Ai, Ap);
 
@@ -276,25 +272,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         OSQPInt n, m;
         osqp_get_dimensions(osqpData->solver, &m, &n);
         if(!mxIsEmpty(q)){
-            q_vec = copyToOSQPFloatVector(mxGetPr(q), n);
+            q_vec = cloneVector<OSQPFloat>(mxGetPr(q), n);
         }
         if(!mxIsEmpty(l)){
-            l_vec = copyToOSQPFloatVector(mxGetPr(l), m);
+            l_vec = cloneVector<OSQPFloat>(mxGetPr(l), m);
         }
         if(!mxIsEmpty(u)){
-            u_vec = copyToOSQPFloatVector(mxGetPr(u), m);
+            u_vec = cloneVector<OSQPFloat>(mxGetPr(u), m);
         }
         if(!mxIsEmpty(Px)){
-            Px_vec = copyToOSQPFloatVector(mxGetPr(Px), Px_n);
+            Px_vec = cloneVector<OSQPFloat>(mxGetPr(Px), Px_n);
         }
         if(!mxIsEmpty(Ax)){
-            Ax_vec = copyToOSQPFloatVector(mxGetPr(Ax), Ax_n);
+            Ax_vec = cloneVector<OSQPFloat>(mxGetPr(Ax), Ax_n);
         }
         if(!mxIsEmpty(Px_idx)){
-            Px_idx_vec = copyDoubleToOSQPIntVector(mxGetPr(Px_idx), Px_n);
+            Px_idx_vec = cloneVector<OSQPInt>(mxGetPr(Px_idx), Px_n);
         }
         if(!mxIsEmpty(Ax_idx)){
-            Ax_idx_vec = copyDoubleToOSQPIntVector(mxGetPr(Ax_idx), Ax_n);
+            Ax_idx_vec = cloneVector<OSQPInt>(mxGetPr(Ax_idx), Ax_n);
         }
 
         if (!exitflag && (!mxIsEmpty(q) || !mxIsEmpty(l) || !mxIsEmpty(u))) {
@@ -359,10 +355,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       OSQPInt n, m;
       osqp_get_dimensions(osqpData->solver, &m, &n);
       if(!mxIsEmpty(x)){
-          x_vec = copyToOSQPFloatVector(mxGetPr(x),n);
+          x_vec = cloneVector<OSQPFloat>(mxGetPr(x),n);
       }
       if(!mxIsEmpty(y)){
-          y_vec = copyToOSQPFloatVector(mxGetPr(y),m);
+          y_vec = cloneVector<OSQPFloat>(mxGetPr(y),m);
       }
 
       // Warm start x and y
@@ -405,8 +401,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             (osqpData->solver->info->status_val != OSQP_DUAL_INFEASIBLE)){
 
             //primal and dual solutions
-            castToDoubleArr(osqpData->solver->solution->x, mxGetPr(plhs[0]), n);
-            castToDoubleArr(osqpData->solver->solution->y, mxGetPr(plhs[1]), m);
+            copyVector<double>(mxGetPr(plhs[0]), osqpData->solver->solution->x, n);
+            copyVector<double>(mxGetPr(plhs[1]), osqpData->solver->solution->y, m);
 
             //infeasibility certificates -> NaN values
             setToNaN(mxGetPr(plhs[2]), m);
@@ -420,7 +416,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             setToNaN(mxGetPr(plhs[1]), m);
 
             //primal infeasibility certificates
-            castToDoubleArr(osqpData->solver->solution->prim_inf_cert, mxGetPr(plhs[2]), m);
+            copyVector<double>(mxGetPr(plhs[2]), osqpData->solver->solution->prim_inf_cert, m);
 
             //dual infeasibility certificates -> NaN values
             setToNaN(mxGetPr(plhs[3]), n);
@@ -438,7 +434,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             setToNaN(mxGetPr(plhs[2]), m);
 
             //dual infeasibility certificates
-            castToDoubleArr(osqpData->solver->solution->dual_inf_cert, mxGetPr(plhs[3]), n);
+            copyVector<double>(mxGetPr(plhs[3]), osqpData->solver->solution->dual_inf_cert, n);
 
             // Set objective value to -infinity
             osqpData->solver->info->obj_val = -mxGetInf();
@@ -529,54 +525,6 @@ OSQPSolver* initializeOSQPSolver() {
   return osqpSolver;
 }
 
-//Dynamically creates a OSQPFloat vector copy of the input.
-//Returns an empty pointer if vecData is NULL
-OSQPFloat*    copyToOSQPFloatVector(double * vecData, OSQPInt numel){
-  if (!vecData) return NULL;
-
-  //This needs to be freed!
-  OSQPFloat* out = (OSQPFloat*)c_malloc(numel * sizeof(OSQPFloat));
-
-  //copy data
-  for(OSQPInt i=0; i < numel; i++){
-      out[i] = (OSQPFloat)vecData[i];
-  }
-  return out;
-}
-
-//Dynamically creates a OSQPInt vector copy of the input.
-OSQPInt* copyToOSQPIntVector(mwIndex* vecData, OSQPInt numel){
-  // This memory needs to be freed!
-  OSQPInt* out = (OSQPInt*)c_malloc(numel * sizeof(OSQPInt));
-
-  //copy data
-  for(OSQPInt i=0; i < numel; i++){
-      out[i] = (OSQPInt)vecData[i];
-  }
-  return out;
-
-}
-
-//Dynamically copies a double vector to OSQPInt.
-OSQPInt* copyDoubleToOSQPIntVector(double* vecData, OSQPInt numel){
-  // This memory needs to be freed!
-  OSQPInt* out = (OSQPInt*)c_malloc(numel * sizeof(OSQPInt));
-
-  //copy data
-  for(OSQPInt i=0; i < numel; i++){
-      out[i] = (OSQPInt)vecData[i];
-  }
-  return out;
-
-}
-
-/* DELETE HERE
-void castCintToDoubleArr(OSQPInt *arr, double* arr_out, OSQPInt len) {
-    for (OSQPInt i = 0; i < len; i++) {
-        arr_out[i] = (double)arr[i];
-    }
-}*/
-
 //This function frees the memory allocated in an OSQPCscMatrix M
 void freeCscMatrix(OSQPCscMatrix* M) {
     if (!M) return;
@@ -584,12 +532,6 @@ void freeCscMatrix(OSQPCscMatrix* M) {
     if (M->i) c_free(M->i);
     if (M->x) c_free(M->x);
     c_free(M);
-}
-
-void castToDoubleArr(OSQPFloat *arr, double* arr_out, OSQPInt len) {
-    for (OSQPInt i = 0; i < len; i++) {
-        arr_out[i] = (double)arr[i];
-    }
 }
 
 void setToNaN(double* arr_out, OSQPInt len){
