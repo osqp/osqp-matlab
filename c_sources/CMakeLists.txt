@@ -67,7 +67,8 @@ matlab_add_mex( NAME osqp_mex
                 SRC ${CMAKE_CURRENT_SOURCE_DIR}/osqp_mex.cpp
                     ${CMAKE_CURRENT_SOURCE_DIR}/interrupt_matlab.c
                     ${CMAKE_CURRENT_SOURCE_DIR}/memory_matlab.c
-                    ${CMAKE_CURRENT_SOURCE_DIR}/settings_matlab.cpp
+                    ${CMAKE_CURRENT_SOURCE_DIR}/osqp_struct_info.cpp
+                    ${CMAKE_CURRENT_SOURCE_DIR}/osqp_struct_settings.cpp
                 LINK_TO osqpstatic
                         ${UT_LIBRARY}
                 # Force compilation in the traditional C API (equivalent to the -R2017b flag)

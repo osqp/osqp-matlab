@@ -6,8 +6,8 @@
 
 // Mex-specific functionality
 #include "osqp_mex.hpp"
+#include "osqp_struct.h"
 #include "memory_matlab.h"
-#include "settings_matlab.h"
 
 //c_int is replaced with OSQPInt
 //c_float is replaced with OSQPFloat
@@ -15,23 +15,6 @@
 //TODO: Check if this definition is required, and maybe replace it with:
 //   enum linsys_solver_type { QDLDL_SOLVER, MKL_PARDISO_SOLVER };
 #define QDLDL_SOLVER 0 //Based on the previous API
-
-// all of the OSQP_INFO fieldnames as strings
-const char* OSQP_INFO_FIELDS[] = {"status",         //char*     
-                                  "status_val",     //OSQPInt 
-                                  "status_polish",  //OSQPInt
-                                  "obj_val",        //OSQPFloat
-                                  "prim_res",       //OSQPFloat
-                                  "dual_res",       //OSQPFloat
-                                  "iter",           //OSQPInt
-                                  "rho_updates",    //OSQPInt
-                                  "rho_estimate",   //OSQPFloat
-                                  "setup_time",     //OSQPFloat
-                                  "solve_time",     //OSQPFloat
-                                  "update_time",    //OSQPFloat
-                                  "polish_time",    //OSQPFloat
-                                  "run_time",       //OSQPFloat
-                                  };      
 
 #define NEW_SETTINGS_TOL (1e-10)
 
@@ -52,7 +35,6 @@ void           freeCscMatrix(OSQPCscMatrix* M);
 OSQPInt*       copyToOSQPIntVector(mwIndex * vecData, OSQPInt numel);
 OSQPInt*       copyDoubleToOSQPIntVector(double* vecData, OSQPInt numel);
 OSQPFloat*     copyToOSQPFloatVector(double * vecData, OSQPInt numel);
-mxArray*       copyInfoToMxStruct(OSQPInfo* info);
 
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -131,7 +113,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         OSQPSettingsWrapper settings(prhs[2]);
-        osqp_update_settings(osqpData->solver, settings.GetOSQPSettings());
+        osqp_update_settings(osqpData->solver, settings.GetOSQPStruct());
         return;
     }
 
@@ -214,7 +196,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         // Setup workspace
         //exitflag = osqp_setup(&(osqpData->work), data, settings);
-        exitflag = osqp_setup(&(osqpData->solver), dataP, dataQ, dataA, dataL, dataU, dataM, dataN, settings.GetOSQPSettings());
+        exitflag = osqp_setup(&(osqpData->solver), dataP, dataQ, dataA, dataL, dataU, dataM, dataN, settings.GetOSQPStruct());
         //cleanup temporary structures
         // Data
         if (Px)       c_free(Px);
@@ -466,7 +448,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             osqpData->solver->info->obj_val = mxGetNaN();
         }
 
-        plhs[4] = copyInfoToMxStruct(osqpData->solver->info); // Info structure
+        // Populate the info structure
+        OSQPInfoWrapper info(osqpData->solver->info);
+        plhs[4] = info.GetMxStruct();
 
         return;
     }
@@ -613,35 +597,4 @@ void setToNaN(double* arr_out, OSQPInt len){
     for (i = 0; i < len; i++) {
         arr_out[i] = mxGetNaN();
     }
-}
-
-mxArray* copyInfoToMxStruct(OSQPInfo* info){
-
-  //create mxArray with the right number of fields
-  int nfields  = sizeof(OSQP_INFO_FIELDS) / sizeof(OSQP_INFO_FIELDS[0]);
-  mxArray* mxPtr = mxCreateStructMatrix(1,1,nfields,OSQP_INFO_FIELDS);
-
-  //map the OSQP_INFO fields one at a time into mxArrays
-  //matlab all numeric values as doubles
-  mxSetField(mxPtr, 0, "iter",          mxCreateDoubleScalar(info->iter));
-  mxSetField(mxPtr, 0, "status",        mxCreateString(info->status));
-  mxSetField(mxPtr, 0, "status_val",    mxCreateDoubleScalar(info->status_val));
-  mxSetField(mxPtr, 0, "status_polish", mxCreateDoubleScalar(info->status_polish));
-  mxSetField(mxPtr, 0, "obj_val",       mxCreateDoubleScalar(info->obj_val));
-  mxSetField(mxPtr, 0, "prim_res",      mxCreateDoubleScalar(info->prim_res));
-  mxSetField(mxPtr, 0, "dual_res",      mxCreateDoubleScalar(info->dual_res));
-
-  mxSetField(mxPtr, 0, "setup_time",  mxCreateDoubleScalar(info->setup_time));
-  mxSetField(mxPtr, 0, "solve_time",  mxCreateDoubleScalar(info->solve_time));
-  mxSetField(mxPtr, 0, "update_time", mxCreateDoubleScalar(info->update_time));
-  mxSetField(mxPtr, 0, "polish_time", mxCreateDoubleScalar(info->polish_time));
-  mxSetField(mxPtr, 0, "run_time",    mxCreateDoubleScalar(info->run_time));
-
-
-  mxSetField(mxPtr, 0, "rho_updates",    mxCreateDoubleScalar(info->rho_updates));
-  mxSetField(mxPtr, 0, "rho_estimate",   mxCreateDoubleScalar(info->rho_estimate));
-
-
-  return mxPtr;
-
 }
