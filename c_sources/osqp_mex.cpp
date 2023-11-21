@@ -10,33 +10,35 @@
 #include "arrays_matlab.h"
 #include "memory_matlab.h"
 
-//c_int is replaced with OSQPInt
-//c_float is replaced with OSQPFloat
-
 //TODO: Check if this definition is required, and maybe replace it with:
 //   enum linsys_solver_type { QDLDL_SOLVER, MKL_PARDISO_SOLVER };
 #define QDLDL_SOLVER 0 //Based on the previous API
 
-#define NEW_SETTINGS_TOL (1e-10)
-
-// wrapper class for all osqp data and settings
+// Wrapper class to pass the OSQP solver back and forth with Matlab
 class OsqpData
 {
 public:
-  OsqpData() : solver(NULL){}
-  OSQPSolver     * solver;
+  OsqpData() :
+    solver(NULL)
+    {}
+  OSQPSolver* solver;
 };
 
-// internal utility functions
-OSQPSolver*    initializeOSQPSolver();
-void           setToNaN(double* arr_out, OSQPInt len);
-void           freeCscMatrix(OSQPCscMatrix* M);
+
+// Internal utility function
+static void setToNaN(double* arr_out, OSQPInt len){
+    OSQPInt i;
+    for (i = 0; i < len; i++) {
+        arr_out[i] = mxGetNaN();
+    }
+}
 
 
+// Main mex function
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {   
     OsqpData* osqpData;
-    //OSQPSolver* osqpSolver = NULL;
+
     // Exitflag
     OSQPInt exitflag = 0;
     // Static string for static methods
@@ -53,8 +55,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           }
         // Return a handle to a new C++ wrapper instance
         osqpData = new OsqpData;
-        //osqpData->solver = initializeOSQPSolver();
-        osqpData->solver = NULL;
         plhs[0] = convertPtr2Mat<OsqpData>(osqpData);
         return;
     }
@@ -508,35 +508,4 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // Got here, so command not recognized
     mexErrMsgTxt("Command not recognized.");
-}
-
-/**
- * This function dynamically allocates OSQPSovler and sets all the properties of OSQPSolver to NULL.
- * WARNING: The memory allocated here (OSQPSolver*) needs to be freed.
- * WARNING: Any dynamically allocated pointers must be freed before calling this function.
-*/
-OSQPSolver* initializeOSQPSolver() {
-  OSQPSolver* osqpSolver = new OSQPSolver;
-  osqpSolver->info       = NULL;
-  osqpSolver->settings   = NULL;
-  osqpSolver->solution   = NULL;
-  osqpSolver->work       = NULL;
-  //osqp_set_default_settings(osqpSolver->settings);
-  return osqpSolver;
-}
-
-//This function frees the memory allocated in an OSQPCscMatrix M
-void freeCscMatrix(OSQPCscMatrix* M) {
-    if (!M) return;
-    if (M->p) c_free(M->p);
-    if (M->i) c_free(M->i);
-    if (M->x) c_free(M->x);
-    c_free(M);
-}
-
-void setToNaN(double* arr_out, OSQPInt len){
-    OSQPInt i;
-    for (i = 0; i < len; i++) {
-        arr_out[i] = mxGetNaN();
-    }
 }
