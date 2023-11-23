@@ -34,7 +34,7 @@ classdef osqp < handle
         %%
         function out = default_settings()
             % DEFAULT_SETTINGS get the default solver settings structure
-            out = osqp_mex('default_settings', 'static');
+            out = osqp_mex('default_settings');
 
 	        % Convert linsys solver to string
 	        out.linsys_solver = linsys_solver_to_string(out.linsys_solver);
@@ -44,13 +44,13 @@ classdef osqp < handle
         function out = constant(constant_name)
             % CONSTANT Return solver constant
             %   C = CONSTANT(CONSTANT_NAME) return constant called CONSTANT_NAME
-            out = osqp_mex('constant', 'static', constant_name);
+            out = osqp_mex('constant', constant_name);
         end
         
         %%
         function out = version()
             % Return OSQP version
-            out = osqp_mex('version', 'static');
+            out = osqp_mex('version');
         end
     end
 

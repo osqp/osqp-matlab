@@ -37,17 +37,21 @@ static void setToNaN(double* arr_out, OSQPInt len){
 // Main mex function
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {   
+    // OSQP solver wrapper
     OsqpData* osqpData;
 
     // Exitflag
     OSQPInt exitflag = 0;
-    // Static string for static methods
-    char stat_string[64];
+
     // Get the command string
     char cmd[64];
-	  if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
+
+    if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
 		mexErrMsgTxt("First input should be a command string less than 64 characters long.");
-    // new object
+    
+    /*
+     * First check to see if a new object was requested
+     */
     if (!strcmp("new", cmd)) {
         // Check parameters
         if (nlhs != 1){
@@ -59,18 +63,97 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
-    // Check for a second input, which should be the class instance handle or string 'static'
-    if (nrhs < 2)
-    		mexErrMsgTxt("Second input should be a class instance handle or the string 'static'.");
-
-    if(mxGetString(prhs[1], stat_string, sizeof(stat_string))){
-        // If we are dealing with non-static methods, get the class instance pointer from the second input
-        osqpData = convertMat2Ptr<OsqpData>(prhs[1]);
-    } else {
-        if (strcmp("static", stat_string)){
-            mexErrMsgTxt("Second argument for static functions is string 'static'");
-        }
+    /*
+     * Next check to see if any of the static methods were called
+     */
+    // Report the version
+    if (!strcmp("version", cmd)) {
+        plhs[0] = mxCreateString(osqp_version());
+        return;
     }
+
+    // Report the default settings
+    if (!strcmp("default_settings", cmd)) {
+        // Warn if other commands were ignored
+        if (nrhs > 2)
+            mexWarnMsgTxt("Default settings: unexpected number of arguments.");
+
+        // Create a Settings structure in default form and report the results
+        // Useful for external solver packages (e.g. Yalmip) that want to
+        // know which solver settings are supported
+        OSQPSettingsWrapper settings;
+        plhs[0] = settings.GetMxStruct();
+        return;
+    }
+
+    // Return solver constants
+    if (!strcmp("constant", cmd)) {
+        static std::map<std::string, OSQPFloat> floatConstants{
+            // Numerical constants
+            {"OSQP_INFTY", OSQP_INFTY}
+        };
+
+        static std::map<std::string, OSQPInt> intConstants{
+            // Return codes
+            {"OSQP_SOLVED",                       OSQP_SOLVED},
+            {"OSQP_SOLVED_INACCURATE",            OSQP_SOLVED_INACCURATE},
+            {"OSQP_UNSOLVED",                     OSQP_UNSOLVED},
+            {"OSQP_PRIMAL_INFEASIBLE",            OSQP_PRIMAL_INFEASIBLE},
+            {"OSQP_PRIMAL_INFEASIBLE_INACCURATE", OSQP_PRIMAL_INFEASIBLE_INACCURATE},
+            {"OSQP_DUAL_INFEASIBLE",              OSQP_DUAL_INFEASIBLE},
+            {"OSQP_DUAL_INFEASIBLE_INACCURATE",   OSQP_DUAL_INFEASIBLE_INACCURATE},
+            {"OSQP_MAX_ITER_REACHED",             OSQP_MAX_ITER_REACHED},
+            {"OSQP_NON_CVX",                      OSQP_NON_CVX},
+            {"OSQP_TIME_LIMIT_REACHED",           OSQP_TIME_LIMIT_REACHED},
+
+            // Linear system solvers
+            {"QDLDL_SOLVER",         QDLDL_SOLVER},
+            {"OSQP_UNKNOWN_SOLVER",  OSQP_UNKNOWN_SOLVER},
+            {"OSQP_DIRECT_SOLVER",   OSQP_DIRECT_SOLVER},
+            {"OSQP_INDIRECT_SOLVER", OSQP_INDIRECT_SOLVER}
+        };
+
+        char constant[64];
+        int  constantLength = mxGetN(prhs[1]) + 1;
+        mxGetString(prhs[1], constant, constantLength);
+
+        auto ci = intConstants.find(constant);
+
+        if(ci != intConstants.end()) {
+            plhs[0] = mxCreateDoubleScalar(ci->second);
+            return;
+        }
+
+        auto cf = floatConstants.find(constant);
+
+        if(cf != floatConstants.end()) {
+            plhs[0] = mxCreateDoubleScalar(cf->second);
+            return;
+        }
+
+        // NaN is special because we need the Matlab version
+        if (!strcmp("OSQP_NAN", constant)){
+            plhs[0] = mxCreateDoubleScalar(mxGetNaN());
+            return;
+        }
+
+        mexErrMsgTxt("Constant not recognized.");
+
+        return;
+    }
+
+    /*
+     * Finally, check to see if this is a function operating on a solver instance
+     */
+
+    // Check for a second input, which should be the class instance handle
+    if (nrhs < 2)
+        mexErrMsgTxt("Second input should be a class instance handle.");
+
+
+    // Get the class instance pointer from the second input
+    osqpData = convertMat2Ptr<OsqpData>(prhs[1]);
+
     // delete the object and its data
     if (!strcmp("delete", cmd)) {
         
@@ -123,21 +206,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         OSQPFloat rho = (OSQPFloat)mxGetScalar(prhs[2]);
 
         osqp_update_rho(osqpData->solver, rho);
-        return;
-    }
-
-    // report the default settings
-    if (!strcmp("default_settings", cmd)) {
-        // Warn if other commands were ignored
-        if (nrhs > 2)
-            mexWarnMsgTxt("Default settings: unexpected number of arguments.");
-
-
-        // Create a Settings structure in default form and report the results
-        // Useful for external solver packages (e.g. Yalmip) that want to
-        // know which solver settings are supported
-        OSQPSettingsWrapper settings;
-        plhs[0] = settings.GetMxStruct();
         return;
     }
 
@@ -227,14 +295,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         osqp_get_dimensions(osqpData->solver, &m, &n);
         plhs[0] = mxCreateDoubleScalar(n);
         plhs[1] = mxCreateDoubleScalar(m);
-
-        return;
-    }
-
-    // report the version
-    if (!strcmp("version", cmd)) {
-
-        plhs[0] = mxCreateString(osqp_version());
 
         return;
     }
@@ -447,61 +507,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // Populate the info structure
         OSQPInfoWrapper info(osqpData->solver->info);
         plhs[4] = info.GetMxStruct();
-
-        return;
-    }
-
-    if (!strcmp("constant", cmd)) { // Return solver constants
-        static std::map<std::string, OSQPFloat> floatConstants{
-            // Numerical constants
-            {"OSQP_INFTY", OSQP_INFTY}
-        };
-
-        static std::map<std::string, OSQPInt> intConstants{
-            // Return codes
-            {"OSQP_SOLVED",                       OSQP_SOLVED},
-            {"OSQP_SOLVED_INACCURATE",            OSQP_SOLVED_INACCURATE},
-            {"OSQP_UNSOLVED",                     OSQP_UNSOLVED},
-            {"OSQP_PRIMAL_INFEASIBLE",            OSQP_PRIMAL_INFEASIBLE},
-            {"OSQP_PRIMAL_INFEASIBLE_INACCURATE", OSQP_PRIMAL_INFEASIBLE_INACCURATE},
-            {"OSQP_DUAL_INFEASIBLE",              OSQP_DUAL_INFEASIBLE},
-            {"OSQP_DUAL_INFEASIBLE_INACCURATE",   OSQP_DUAL_INFEASIBLE_INACCURATE},
-            {"OSQP_MAX_ITER_REACHED",             OSQP_MAX_ITER_REACHED},
-            {"OSQP_NON_CVX",                      OSQP_NON_CVX},
-            {"OSQP_TIME_LIMIT_REACHED",           OSQP_TIME_LIMIT_REACHED},
-
-            // Linear system solvers
-            {"QDLDL_SOLVER",         QDLDL_SOLVER},
-            {"OSQP_UNKNOWN_SOLVER",  OSQP_UNKNOWN_SOLVER},
-            {"OSQP_DIRECT_SOLVER",   OSQP_DIRECT_SOLVER},
-            {"OSQP_INDIRECT_SOLVER", OSQP_INDIRECT_SOLVER}
-        };
-
-        char constant[64];
-        int  constantLength = mxGetN(prhs[2]) + 1;
-        mxGetString(prhs[2], constant, constantLength);
-
-        auto ci = intConstants.find(constant);
-
-        if(ci != intConstants.end()) {
-            plhs[0] = mxCreateDoubleScalar(ci->second);
-            return;
-        }
-
-        auto cf = floatConstants.find(constant);
-
-        if(cf != floatConstants.end()) {
-            plhs[0] = mxCreateDoubleScalar(cf->second);
-            return;
-        }
-
-        // NaN is special because we need the Matlab version
-        if (!strcmp("OSQP_NAN", constant)){
-            plhs[0] = mxCreateDoubleScalar(mxGetNaN());
-            return;
-        }
-
-        mexErrMsgTxt("Constant not recognized.");
 
         return;
     }
