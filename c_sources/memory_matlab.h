@@ -1,22 +1,17 @@
 /* Memory managment for MATLAB */
 #include "mex.h"
 
-static void* c_calloc(size_t num, size_t size) {
-  void *m = mxCalloc(num, size);
-  mexMakeMemoryPersistent(m);
-  return m;
-}
 
-static void* c_malloc(size_t size) {
-  void *m = mxMalloc(size);
-  mexMakeMemoryPersistent(m);
-  return m;
-}
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-static void* c_realloc(void *ptr, size_t size) {
-  void *m = mxRealloc(ptr, size);
-  mexMakeMemoryPersistent(m);
-  return m;
+  void* c_calloc(size_t num, size_t size);
+  void* c_malloc(size_t size);
+  void* c_realloc(void *ptr, size_t size);
+
+#ifdef __cplusplus
 }
+#endif
 
 #define c_free mxFree

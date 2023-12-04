@@ -1,7 +1,7 @@
 import matlab.unittest.TestSuite;
 
-[osqp_path,~,~] = fileparts(which('osqp.m'));
-unittest_dir = fullfile(osqp_path, 'unittests');
+[osqp_classpath,~,~] = fileparts( mfilename( 'fullpath' ) );
+unittest_dir = fullfile(osqp_classpath, 'unittests');
 suiteFolder = TestSuite.fromFolder(unittest_dir);
 
 % Solve individual test file

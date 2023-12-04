@@ -10,6 +10,10 @@ message( STATUS "Matlab root is " ${Matlab_ROOT_DIR} )
 
 include_directories( ${Matlab_INCLUDE_DIRS} )
 
+# The mex interface uses C++11
+set( CMAKE_CXX_STANDARD 11 )
+set( CMAKE_CXX_STANDARD_REQUIRED ON )
+
 if( CMAKE_COMPILER_IS_GNUCXX )
     # Add debug symbols and optimizations to the build
     set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2" )
@@ -62,6 +66,9 @@ endif()
 matlab_add_mex( NAME osqp_mex
                 SRC ${CMAKE_CURRENT_SOURCE_DIR}/osqp_mex.cpp
                     ${CMAKE_CURRENT_SOURCE_DIR}/interrupt_matlab.c
+                    ${CMAKE_CURRENT_SOURCE_DIR}/memory_matlab.c
+                    ${CMAKE_CURRENT_SOURCE_DIR}/osqp_struct_info.cpp
+                    ${CMAKE_CURRENT_SOURCE_DIR}/osqp_struct_settings.cpp
                 LINK_TO osqpstatic
                         ${UT_LIBRARY}
                 # Force compilation in the traditional C API (equivalent to the -R2017b flag)
