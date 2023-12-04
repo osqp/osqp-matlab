@@ -41,22 +41,10 @@ function warm_start(this, varargin)
     assert(isempty(x) || length(x) == n, 'input ''x'' is the wrong size');
     assert(isempty(y) || length(y) == m, 'input ''y'' is the wrong size');
 
-
-    % Decide which function to call
-    if (~isempty(x) && isempty(y))
-        osqp_mex('warm_start_x', this.objectHandle, x);
-        return;
-    end
-
-    if (isempty(x) && ~isempty(y))
-        osqp_mex('warm_start_y', this.objectHandle, y);
-    end
-
-    if (~isempty(x) && ~isempty(y))
+    % Only call when there is a vector to update
+    if (~isempty(x) || ~isempty(y))
         osqp_mex('warm_start', this.objectHandle, x, y);
-    end
-
-    if (isempty(x) && isempty(y))
+    else
         error('Unrecognized fields');
     end
 end

@@ -36,7 +36,7 @@ static void setToNaN(double* arr_out, OSQPInt len){
 
 // Main mex function
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
-{   
+{
     // OSQP solver wrapper
     OsqpData* osqpData;
 
@@ -48,7 +48,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
 		mexErrMsgTxt("First input should be a command string less than 64 characters long.");
-    
+
     /*
      * First check to see if a new object was requested
      */
@@ -156,7 +156,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // delete the object and its data
     if (!strcmp("delete", cmd)) {
-        
+
         osqp_cleanup(osqpData->solver);
         destroyObject<OsqpData>(prhs[1]);
         // Warn if other commands were ignored
@@ -202,7 +202,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         if(!osqpData->solver){
             mexErrMsgTxt("Solver is uninitialized.  No settings have been configured.");
         }
-    
+
         OSQPFloat rho = (OSQPFloat)mxGetScalar(prhs[2]);
 
         osqp_update_rho(osqpData->solver, rho);
@@ -355,14 +355,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         if (!exitflag && (!mxIsEmpty(q) || !mxIsEmpty(l) || !mxIsEmpty(u))) {
           exitflag = osqp_update_data_vec(osqpData->solver, q_vec, l_vec, u_vec);
-          if (exitflag) exitflag=1; 
+          if (exitflag) exitflag=1;
         }
-   
+
         if (!exitflag && (!mxIsEmpty(Px) || !mxIsEmpty(Ax))) {
           exitflag = osqp_update_data_mat(osqpData->solver, Px_vec, Px_idx_vec, Px_n, Ax_vec, Ax_idx_vec, Ax_n);
           if (exitflag) exitflag=2;
         }
-                                      
+
 
         // Free vectors
         if(!mxIsEmpty(q))  c_free(q_vec);
@@ -384,29 +384,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
-    if (!strcmp("warm_start", cmd) || !strcmp("warm_start_x", cmd) || !strcmp("warm_start_y", cmd)) {
-      
+    if (!strcmp("warm_start", cmd)) {
+
       //throw an error if this is called before solver is configured
       if(!osqpData->solver){
           mexErrMsgTxt("Solver has not been initialized.");
-        }
+      }
 
       // Fill x and y
-      const mxArray *x = NULL;
-      const mxArray *y = NULL;
-      if (!strcmp("warm_start", cmd)) {  
-        x = prhs[2];
-        y = prhs[3];
-      }
-      else if (!strcmp("warm_start_x", cmd)) {
-        x = prhs[2];
-        y = NULL;
-      }
-
-      else if (!strcmp("warm_start_y", cmd)) {
-        x = NULL;
-        y = prhs[2];
-      }
+      const mxArray *x = prhs[2];
+      const mxArray *y = prhs[3];
 
       // Copy vectors to ensure they are cast as OSQPFloat
       OSQPFloat *x_vec = NULL;
@@ -414,6 +401,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       OSQPInt n, m;
       osqp_get_dimensions(osqpData->solver, &m, &n);
+
       if(!mxIsEmpty(x)){
           x_vec = cloneVector<OSQPFloat>(mxGetPr(x),n);
       }
