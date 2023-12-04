@@ -16,18 +16,14 @@ function varargout = setup(this, varargin)
     %
 
     % Get number of variables n
-    if (isempty(P))
-        if (~isempty(q))
-            n = length(q);
-        else
-            if (~isempty(A))
-                n = size(A, 2);
-            else
-                error('The problem does not have any variables');
-            end
-        end
-    else
+    if (~isempty(P))
         n = size(P, 1);
+    elseif (~isempty(q))
+        n = length(q);
+    elseif (~isempty(A))
+        n = size(A, 2);
+    else
+        error('The problem does not have any variables');
     end
 
     % Get number of constraints m
@@ -53,7 +49,7 @@ function varargout = setup(this, varargin)
     if (isempty(q))
         q = zeros(n, 1);
     else
-        q   = full(q(:));
+        q = full(q(:));
     end
 
     % Create proper constraints if they are not passed
@@ -84,7 +80,6 @@ function varargout = setup(this, varargin)
     %
     % Check vector dimensions (not checked from the C solver)
     %
-
     assert(length(q) == n, 'Incorrect dimension of q');
     assert(length(l) == m, 'Incorrect dimension of l');
     assert(length(u) == m, 'Incorrect dimension of u');
