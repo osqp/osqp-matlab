@@ -4,7 +4,6 @@
 #include "mex.h"
 #include "matrix.h"
 #include "osqp.h"
-#include <iostream> //DELETE HERE
 // Mex-specific functionality
 #include "osqp_mex.hpp"
 #include "osqp_struct.h"
@@ -19,7 +18,6 @@
 #define PREFIX_MAX_LEN 128
 
 using std::string;
-using namespace std; //DELETE HERE
 
 // Wrapper class to pass the OSQP solver back and forth with Matlab
 class OsqpData
@@ -147,9 +145,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     char cmd[CMD_MAX_LEN];
 
     setString(nrhs, prhs, 0, cmd, CMD_MAX_LEN);
-    // DELETE HERE
-    // if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
-	// 	mexErrMsgTxt("First input should be a command string less than 64 characters long.");
 
     /*
      * First check to see if a new object was requested
@@ -220,7 +215,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         char constant[64];
         int  constantLength = mxGetN(prhs[1]) + 1;
         setString(nrhs, prhs, 1, constant, constantLength);
-        //mxGetString(prhs[1], constant, constantLength); //DELETE HERE
 
         auto ci = intConstants.find(constant);
 
@@ -632,15 +626,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         
         //Check that the correct number of arguments is passed
         if (nrhs != 4) mexErrMsgTxt("Codegen: unexpected number of arguments");
-        cout << "Line #1" << endl;
         char output_dir[OUTPUT_DIR_MAX_LEN];
-        cout << "Line #2" << endl;
         char prefix[PREFIX_MAX_LEN];
-        cout << "Line #3" << endl;
         setString(nrhs, prhs, 2, output_dir, OUTPUT_DIR_MAX_LEN);
-        cout << "Line #4" << endl;
         setString(nrhs, prhs, 3, prefix, PREFIX_MAX_LEN);
-        cout << "Line #5" << endl;
 
         //Check that the solver was initialized
         if(!osqpData->solver) mexErrMsgTxt("Solver has not been initialized.");
