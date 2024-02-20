@@ -145,7 +145,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     char cmd[CMD_MAX_LEN];
 
     setString(nrhs, prhs, 0, cmd, CMD_MAX_LEN);
-
+    
     /*
      * First check to see if a new object was requested
      */
@@ -253,9 +253,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // delete the object and its data
     if (!strcmp("delete", cmd)) {
-
         osqp_cleanup(osqpData->solver);
-        if (osqpData->defines) c_free(osqpData->defines);
         destroyObject<OsqpData>(prhs[1]);
         // Warn if other commands were ignored
         if (nlhs != 0 || nrhs != 2)
