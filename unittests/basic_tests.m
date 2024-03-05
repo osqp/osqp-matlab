@@ -124,6 +124,9 @@ classdef basic_tests < matlab.unittest.TestCase
             opts.max_iter = 30;
             testCase.solver.update_settings(opts);
 
+            set = testCase.solver.current_settings();
+            testCase.verifyEqual(set.max_iter, 30)
+
             % Solve again
             results = testCase.solver.solve();
 
@@ -138,6 +141,9 @@ classdef basic_tests < matlab.unittest.TestCase
             opts = testCase.solver.current_settings();
             opts.check_termination = 0;
             testCase.solver.update_settings(opts);
+
+            set = testCase.solver.current_settings();
+            testCase.verifyEqual(set.check_termination, 0)
 
             % Solve again
             results = testCase.solver.solve();
@@ -170,7 +176,7 @@ classdef basic_tests < matlab.unittest.TestCase
         end
 
         function test_update_time_limit(testCase)
-            testCase.verifyEqual(testCase.options.time_limit, 0)
+            testCase.verifyEqual(testCase.options.time_limit, 1e10)
 
             results = testCase.solver.solve();
             testCase.verifyEqual(results.info.status_val, ...
@@ -183,6 +189,11 @@ classdef basic_tests < matlab.unittest.TestCase
                 'eps_abs', 1e-09, ...
                 'max_iter', 2e9,...
                 'check_termination', 0);
+
+            set = testCase.solver.current_settings();
+            testCase.verifyEqual(set.check_termination, 0)
+            testCase.verifyEqual(set.time_limit, 1e-6)
+            testCase.verifyEqual(set.max_iter, 2e9)
 
             results = testCase.solver.solve();
             testCase.verifyEqual(results.info.status_val, ...
