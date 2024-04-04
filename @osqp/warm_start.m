@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 function warm_start(this, varargin)
     % WARM_START warm start primal and/or dual variables
     %

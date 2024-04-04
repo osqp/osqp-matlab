@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 function [linsys_solver] = string_to_linsys_solver(linsys_solver_string)
     linsys_solver_string = lower(linsys_solver_string);
     switch linsys_solver_string

@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 % Demo showing the usage of OSQP from Matlab and the code generation features.
 % This problem is the same one that is presented in the osqp_demo.c file.
 

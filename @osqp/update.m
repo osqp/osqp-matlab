@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 %%
 function update(this,varargin)
     % UPDATE modify the linear cost term and/or lower and upper bounds

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include <mex.h>
 
 void* c_calloc(size_t num, size_t size) {

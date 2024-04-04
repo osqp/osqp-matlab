@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 classdef feasibility_tests < matlab.unittest.TestCase
     %FEASIBILITY_TESTS Solve equality constrained feasibility problem
 

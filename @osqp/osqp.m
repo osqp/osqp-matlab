@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 classdef osqp < handle
     % osqp interface class for OSQP solver
     % This class provides a complete interface to the C implementation

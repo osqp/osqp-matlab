@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 %%
 function varargout = solve(this, varargin)
     % SOLVE solve the QP

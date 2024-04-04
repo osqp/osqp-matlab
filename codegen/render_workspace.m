@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 function render_workspace( work, hfname, cfname, embedded_flag )
 %RENDER_WORKSPACE Write workspace to header file.
 

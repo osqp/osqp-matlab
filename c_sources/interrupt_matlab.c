@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /*
  * Implements interrupt handling using ctrl-c for MATLAB mex files.
  */

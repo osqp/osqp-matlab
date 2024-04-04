@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 classdef codegen_mat_tests < matlab.unittest.TestCase
     %TEST_BASIC_QP Solve Basic QP Problem
 

@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 %%
 function varargout = setup(this, varargin)
     % SETUP configure solver with problem data

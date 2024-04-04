@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #ifndef ARRAYS_MATLAB_H_
 #define ARRAYS_MATLAB_H_
 

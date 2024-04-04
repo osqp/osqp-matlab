@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 function update_settings(this, varargin)
     % UPDATE_SETTINGS update the current solver settings structure
 

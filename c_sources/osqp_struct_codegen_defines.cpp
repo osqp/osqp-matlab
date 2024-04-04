@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include <osqp.h>
 #include "osqp_struct.h"
 

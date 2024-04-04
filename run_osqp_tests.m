@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 import matlab.unittest.TestSuite;
 
 [osqp_classpath,~,~] = fileparts( mfilename( 'fullpath' ) );

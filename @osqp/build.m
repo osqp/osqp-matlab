@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 function build(varargin)
 % Matlab MEX makefile for OSQP.
 %

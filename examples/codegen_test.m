@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 %% Simple problem
 m = 50;
 n = 100;

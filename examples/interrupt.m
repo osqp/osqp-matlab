@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 %% Big lasso problem
 
 % Problem dimensions and sparity

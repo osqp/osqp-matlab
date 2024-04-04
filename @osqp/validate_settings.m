@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 function currentSettings = validate_settings(this, isInitialization, varargin)
     % Don't allow these fields to be changed
     unmodifiableFields = {'scaling', 'linsys_solver'};

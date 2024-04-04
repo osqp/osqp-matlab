@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 function update_codegen_defines(this, varargin)
     % UPDATE_CODEGEN_DEFINES update the current codegen defines
 

@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 % Convert linear systme solver integer to string
 function [linsys_solver_string] = linsys_solver_to_string(linsys_solver)
     switch linsys_solver

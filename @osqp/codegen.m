@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 %%
 function codegen(this, out, varargin)
     % CODEGEN generate C code for the parametric problem

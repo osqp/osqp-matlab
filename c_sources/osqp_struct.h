@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #ifndef OSQP_STRUCT_H_
 #define OSQP_STRUCT_H_
 

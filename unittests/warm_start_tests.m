@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 classdef warm_start_tests < matlab.unittest.TestCase
     %WARM_START_TESTS Warm Start problems solution
 

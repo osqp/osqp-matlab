@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 classdef non_cvx_tests < matlab.unittest.TestCase
     %NON_CVX_TESTS Try to solve a non-convex QP
 

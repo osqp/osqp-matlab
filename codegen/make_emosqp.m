@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 function make_emosqp(target_dir, mex_cfile, EMBEDDED_FLAG, FLOAT_FLAG, LONG_FLAG)
 % Matlab MEX makefile for code generated solver.
 
