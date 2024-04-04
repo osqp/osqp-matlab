@@ -8,20 +8,21 @@ classdef osqp < handle
     %
     % osqp Methods:
     %
-    %   setup             - configure solver with problem data
-    %   solve             - solve the QP
-    %   update            - modify problem vectors
-    %   warm_start        - set warm starting variables x and y
+    %   setup                   - configure solver with problem data
+    %   solve                   - solve the QP
+    %   update                  - modify problem vectors
+    %   warm_start              - set warm starting variables x and y
     %
-    %   default_settings  - create default settings structure
-    %   current_settings  - get the current solver settings structure
-    %   update_settings   - update the current solver settings structure
+    %   default_settings        - create default settings structure
+    %   current_settings        - get the current solver settings structure
+    %   update_settings         - update the current solver settings structure
     %
-    %   get_dimensions    - get the number of variables and constraints
-    %   version           - return OSQP version
-    %   constant          - return a OSQP internal constant
+    %   get_dimensions          - get the number of variables and constraints
+    %   version                 - return OSQP version
+    %   constant                - return a OSQP internal constant
     %
-    %   codegen           - generate embeddable C code for the problem
+    %   update_codegen_defines  - update the current codegen defines
+    %   codegen                 - generate embeddable C code for the problem
 
 
     properties(SetAccess = private, Hidden = true)

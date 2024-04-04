@@ -1,9 +1,9 @@
 #include <map>
+#include <string>
 
 #include "mex.h"
 #include "matrix.h"
 #include "osqp.h"
-
 // Mex-specific functionality
 #include "osqp_mex.hpp"
 #include "osqp_struct.h"
@@ -13,15 +13,21 @@
 //TODO: Check if this definition is required, and maybe replace it with:
 //   enum linsys_solver_type { QDLDL_SOLVER, MKL_PARDISO_SOLVER };
 #define QDLDL_SOLVER 0 //Based on the previous API
+#define CMD_MAX_LEN 64
+#define OUTPUT_DIR_MAX_LEN 256
+#define PREFIX_MAX_LEN 128
+
+using std::string;
 
 // Wrapper class to pass the OSQP solver back and forth with Matlab
 class OsqpData
 {
 public:
   OsqpData() :
-    solver(NULL)
+    solver(NULL), defines(NULL)
     {}
   OSQPSolver* solver;
+  OSQPCodegenDefines* defines;
 };
 
 
@@ -33,6 +39,98 @@ static void setToNaN(double* arr_out, OSQPInt len){
     }
 }
 
+// This is a utility function that uses mexErrMsgTxt using std::string instead of char*.
+void mexErrMsgTxt(string str) {
+    mexErrMsgTxt(str.c_str());
+}
+
+/**
+ * This is a utility function that assigns prhs[ind] to char.
+ * 
+ * @param nrhs      Number of input arguments
+ * @param prhs      Matlab input arrays
+ * @param ind       prhs index
+ * @param str       Target string
+ * @param max_len   Maximum allowed length of the string. If passed 0 (default), use sizeof(str) instead.
+*/
+void setString(int nrhs, const mxArray *prhs[], int ind, char *str, int max_len){
+    int str_max_len = sizeof(str);
+    if (max_len>0) str_max_len = max_len;
+    if (nrhs < (ind+1) || mxGetString(prhs[ind], str, str_max_len)){
+        mexErrMsgTxt("Input #" + std::to_string(ind) + " should be less than " + std::to_string(str_max_len) + " characters long.");
+    }
+}
+
+/**
+ * This function validates the inputs to OSQPCodegenDefines. Calls mexErrMsgTxt if a NULL or an invalid input is passed.
+ * 
+ * @param defines OSQPCodegenDefines object
+*/
+void validateCodegenDefines(const OSQPCodegenDefines* defines) {
+    if (!defines) mexErrMsgTxt("A NULL defines object has been passed.");
+
+    if (defines->embedded_mode){
+        if (defines->embedded_mode != 1 && defines->embedded_mode != 2) mexErrMsgTxt("Invalid embedded mode.");
+    }
+
+    if (defines->float_type){
+        if (defines->float_type != 0 && defines->float_type != 1) mexErrMsgTxt("Invalid float type.");
+    }
+
+    if (defines->printing_enable){
+        if (defines->printing_enable != 0 && defines->printing_enable != 1) mexErrMsgTxt("Invalid printing enable.");
+    }
+
+    if (defines->profiling_enable) {
+        if (defines->profiling_enable != 0 && defines->profiling_enable != 1) mexErrMsgTxt("Invalid profiling enable.");
+    }
+
+    if (defines->interrupt_enable) {
+        if (defines->interrupt_enable != 0 && defines->interrupt_enable != 1) mexErrMsgTxt("Invalid interrupt enable.");
+    }
+
+    if (defines->derivatives_enable) {
+        if (defines->derivatives_enable != 0 && defines->derivatives_enable != 1) mexErrMsgTxt("Invalid derivatives enable.");
+    }
+}
+
+
+
+/**
+ * This function updates CodegenDefines object. Calls mexErrMsgTxt if a NULL or an invalid input is passed.
+ * 
+ * @param target_defines    Pointer to the target OSQPCodegenDefines object.
+ * @param new_defines       Pointer to the OSQPCodegenDefines object witht he new values.
+*/
+void updateCodegenDefines(OSQPCodegenDefines* target_defines,
+                          const OSQPCodegenDefines* new_defines) {
+    if (!target_defines) mexErrMsgTxt("Defines is uninitialized. No codegen defines have been configured.");
+    validateCodegenDefines(new_defines);
+
+    if (new_defines->embedded_mode){
+        target_defines->embedded_mode = new_defines->embedded_mode;
+    }
+
+    if (new_defines->float_type){
+        target_defines->float_type = new_defines->float_type;
+    }
+
+    if (new_defines->printing_enable){
+        target_defines->printing_enable = new_defines->printing_enable;
+    }
+
+    if (new_defines->profiling_enable) {
+        target_defines->profiling_enable = new_defines->profiling_enable;
+    }
+
+    if (new_defines->interrupt_enable) {
+        target_defines->interrupt_enable = new_defines->interrupt_enable;
+    }
+
+    if (new_defines->derivatives_enable) {
+        target_defines->derivatives_enable = new_defines->derivatives_enable;
+    }
+}
 
 // Main mex function
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -44,11 +142,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     OSQPInt exitflag = 0;
 
     // Get the command string
-    char cmd[64];
+    char cmd[CMD_MAX_LEN];
 
-    if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
-		mexErrMsgTxt("First input should be a command string less than 64 characters long.");
-
+    setString(nrhs, prhs, 0, cmd, CMD_MAX_LEN);
+    
     /*
      * First check to see if a new object was requested
      */
@@ -59,6 +156,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           }
         // Return a handle to a new C++ wrapper instance
         osqpData = new OsqpData;
+        osqpData->defines = new OSQPCodegenDefines;
+        osqp_set_default_codegen_defines(osqpData->defines);
         plhs[0] = convertPtr2Mat<OsqpData>(osqpData);
         return;
     }
@@ -115,7 +214,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         char constant[64];
         int  constantLength = mxGetN(prhs[1]) + 1;
-        mxGetString(prhs[1], constant, constantLength);
+        setString(nrhs, prhs, 1, constant, constantLength);
 
         auto ci = intConstants.find(constant);
 
@@ -147,16 +246,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
      */
 
     // Check for a second input, which should be the class instance handle
-    if (nrhs < 2)
-        mexErrMsgTxt("Second input should be a class instance handle.");
-
+    if (nrhs < 2) mexErrMsgTxt("Second input should be a class instance handle.");
 
     // Get the class instance pointer from the second input
     osqpData = convertMat2Ptr<OsqpData>(prhs[1]);
 
     // delete the object and its data
     if (!strcmp("delete", cmd)) {
-
         osqp_cleanup(osqpData->solver);
         destroyObject<OsqpData>(prhs[1]);
         // Warn if other commands were ignored
@@ -169,10 +265,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!strcmp("current_settings", cmd)) {
         // Throw an error if this is called before solver is configured
         if(!osqpData->solver) {
-            mexErrMsgTxt("Solver is uninitialized.  No settings have been configured.");
+            mexErrMsgTxt("Solver is uninitialized. No settings have been configured.");
         }
         if(!osqpData->solver->settings) {
-            mexErrMsgTxt("Solver settings is uninitialized.  No settings have been configured.");
+            mexErrMsgTxt("Solver settings is uninitialized. No settings have been configured.");
         }
 
         // Report the current settings
@@ -188,7 +284,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // and for all error checking
         // throw an error if this is called before solver is configured
         if(!osqpData->solver){
-            mexErrMsgTxt("Solver is uninitialized.  No settings have been configured.");
+            mexErrMsgTxt("Solver is uninitialized. No settings have been configured.");
         }
 
         OSQPSettingsWrapper settings(prhs[2]);
@@ -499,6 +595,50 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
+    if (!strcmp("default_codegen_defines", cmd)) {
+        // Warn if other commands were ignored
+        if (nrhs > 2)
+            mexWarnMsgTxt("Default codegen settings: unexpected number of arguments.");
+
+        // Create a Settings structure in default form and report the results
+        OSQPCodegenDefinesWrapper codegen_settings;
+        plhs[0] = codegen_settings.GetMxStruct();
+        return;
+    }
+
+    if (!strcmp("update_codegen_defines", cmd)) {
+        // Overwrite the current settings.  Mex function is responsible
+        // for disallowing overwrite of selected settings after initialization,
+        // and for all error checking
+        // throw an error if this is called before solver is configured
+        if(!osqpData->defines){
+            mexErrMsgTxt("Defines is uninitialized. No codegen defines have been configured.");
+        }
+
+        OSQPCodegenDefinesWrapper defines(prhs[2]);
+        updateCodegenDefines(osqpData->defines, defines.GetOSQPStruct());
+        return;
+    }
+    
+    if (!strcmp("codegen", cmd)) {
+        
+        //Check that the correct number of arguments is passed
+        if (nrhs != 4) mexErrMsgTxt("Codegen: unexpected number of arguments");
+        char output_dir[OUTPUT_DIR_MAX_LEN];
+        char prefix[PREFIX_MAX_LEN];
+        setString(nrhs, prhs, 2, output_dir, OUTPUT_DIR_MAX_LEN);
+        setString(nrhs, prhs, 3, prefix, PREFIX_MAX_LEN);
+
+        //Check that the solver was initialized
+        if(!osqpData->solver) mexErrMsgTxt("Solver has not been initialized.");
+        if(!osqpData->defines) mexErrMsgTxt("Codegen defines has not been initialized.");
+
+        exitflag = osqp_codegen(osqpData->solver,output_dir, prefix, osqpData->defines);
+        
+        if (exitflag) mexErrMsgTxt("Codegen failed with exitflag = " + std::to_string(exitflag));
+        return;
+    }
+    
     // Got here, so command not recognized
     mexErrMsgTxt("Command not recognized.");
 }

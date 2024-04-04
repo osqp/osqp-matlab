@@ -202,4 +202,10 @@ typedef OSQPStructWrapper<OSQPSettings> OSQPSettingsWrapper;
  */
 typedef OSQPStructWrapper<OSQPInfo> OSQPInfoWrapper;
 
+/**
+ * Wrapper around the OSQPCodegenDefines struct
+ */
+typedef OSQPStructWrapper<OSQPCodegenDefines> OSQPCodegenDefinesWrapper;
+
+
 #endif
