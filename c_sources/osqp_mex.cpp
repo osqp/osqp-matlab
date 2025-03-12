@@ -338,15 +338,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         OSQPInt * Pp = cloneVector<OSQPInt>(mxGetJc(P), dataN + 1);
         OSQPInt * Pi = cloneVector<OSQPInt>(mxGetIr(P), Pp[dataN]);
         OSQPFloat * Px = cloneVector<OSQPFloat>(mxGetPr(P), Pp[dataN]);
-        OSQPCscMatrix* dataP = (OSQPCscMatrix*)c_calloc(1,sizeof(OSQPCscMatrix));
-        csc_set_data(dataP, dataN, dataN, Pp[dataN], Px, Pi, Pp);
+        OSQPCscMatrix* dataP = OSQPCscMatrix_new(dataN, dataN, Pp[dataN], Px, Pi, Pp);
 
         // Matrix A: nnz = A->p[n]
         OSQPInt* Ap = cloneVector<OSQPInt>(mxGetJc(A), dataN + 1);
         OSQPInt* Ai = cloneVector<OSQPInt>(mxGetIr(A), Ap[dataN]);
         OSQPFloat * Ax = cloneVector<OSQPFloat>(mxGetPr(A), Ap[dataN]);
-        OSQPCscMatrix* dataA = (OSQPCscMatrix*)c_calloc(1,sizeof(OSQPCscMatrix));
-        csc_set_data(dataA, dataM, dataN, Ap[dataN], Ax, Ai, Ap);
+        OSQPCscMatrix* dataA = OSQPCscMatrix_new(dataM, dataN, Ap[dataN], Ax, Ai, Ap);
 
         // Create Settings
         OSQPSettingsWrapper settings;
