@@ -9,5 +9,11 @@ suiteFolder = TestSuite.fromFolder(unittest_dir);
 % Solve individual test file
 %suiteFolder = TestSuite.fromFile('unittests/dual_infeasibility_tests.m');
 
-% Run all suite
-result = run(suiteFolder);
+% Run all tests
+results = run(suiteFolder);
+
+if all([results.Failed] == 0)
+    exit(0);
+else
+    exit(1);
+end

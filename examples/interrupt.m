@@ -29,7 +29,7 @@ u = [bd; zeros(n,1); Inf*ones(n,1)];
 
 solver = osqp;
 solver.setup(P, q, A, l, u, ...
-             'check_termination', 0, 'polish', 0, 'max_iter', 50000);
+             'check_termination', 0, 'polishing', 0, 'max_iter', 50000);
 res = solver.solve();
 
 % PRESS CTRL-C BEFORE REACHING 50K ITERATIONS
