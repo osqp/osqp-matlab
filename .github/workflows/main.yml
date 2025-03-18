@@ -32,7 +32,7 @@ jobs:
           command: osqp.build('osqp_mex')
 
       - name: Run tests
-        uses: matlab-actions/run-tests@v1
+        uses: matlab-actions/run-tests@v2
         with:
           source-folder: ./
           select-by-folder: unittests
