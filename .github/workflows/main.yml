@@ -24,10 +24,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Install MATLAB
-        uses: matlab-actions/setup-matlab@v1
-        with:
-          # Use R2023a due to a licensing bug with R2023b and the GitHub actions shared runners
-          release: R2023a
+        uses: matlab-actions/setup-matlab@v2
 
       - name: Build OSQP interface
         uses: matlab-actions/run-command@v1
