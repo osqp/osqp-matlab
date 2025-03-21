@@ -41,7 +41,6 @@ function build(varargin)
     [osqp_classpath,~,~] = fileparts( mfilename( 'fullpath' ) );
     osqp_mex_src_dir = fullfile( osqp_classpath, '..', 'c_sources' );
     osqp_mex_build_dir = fullfile( osqp_mex_src_dir, 'build' );
-    osqp_cg_src_dir = fullfile( osqp_mex_build_dir, 'codegen_src' );
     osqp_cg_dest_dir = fullfile( osqp_classpath, '..', 'codegen', 'sources' );
     
     % Determine where CMake should look for MATLAB
@@ -72,10 +71,10 @@ function build(varargin)
         end
     
     
-    
         %% Configure CMake for the mex interface
         fprintf('  Configuring...' )
-        [status, output] = system( sprintf( 'cmake -B %s -S %s -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMatlab_ROOT_DIR=\"%s\"', osqp_mex_build_dir, osqp_mex_src_dir, Matlab_ROOT ), 'LD_LIBRARY_PATH', '' );
+        temp_dir = fullfile(tempdir, ['osqp_matlab_build_' datestr(now, 'yyyymmdd_HHMMSS_FFF')]);  
+        [status, output] = system( sprintf( 'cmake -B %s -S %s -DCMAKE_INSTALL_PREFIX=\"%s\" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMatlab_ROOT_DIR=\"%s\" -DOSQP_CODEGEN_INSTALL_DIR=\"%s\"', osqp_mex_build_dir, osqp_mex_src_dir, temp_dir, Matlab_ROOT, osqp_cg_dest_dir), 'LD_LIBRARY_PATH', '' );
         if( status )
             fprintf( '\n' );
             disp( output );
@@ -89,7 +88,7 @@ function build(varargin)
     
         %% Build the mex interface
         fprintf( '  Building...')
-        [status, output] = system( sprintf( 'cmake --build %s --config Release', osqp_mex_build_dir ), 'LD_LIBRARY_PATH', '' );
+        [status, output] = system( sprintf( 'cmake --build %s --config Release --target install', osqp_mex_build_dir ), 'LD_LIBRARY_PATH', '' );
         if( status )
             fprintf( '\n' );
             disp( output );
@@ -115,20 +114,6 @@ function build(varargin)
             fprintf( '\n' )
             disp( errmsg )
             error( '  Error copying mex file' )
-        end
-    
-        % Copy the code generation source files
-        % Create build for the mex file and go inside
-        if exist( osqp_cg_dest_dir, 'dir' )
-            rmdir( osqp_cg_dest_dir, 's' );
-        end
-        mkdir( osqp_cg_dest_dir );
-    
-        [err, errmsg, ~] = copyfile( [osqp_cg_src_dir, filesep, '*'], osqp_cg_dest_dir );
-        if( ~err )
-            fprintf( '\n' )
-            disp( errmsg )
-            error( '  Error copying code generation source files' )
         end
     
         fprintf( '\t\t\t\t\t\t[done]\n' );
