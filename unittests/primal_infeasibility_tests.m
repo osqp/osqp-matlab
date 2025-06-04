@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 classdef primal_infeasibility_tests < matlab.unittest.TestCase
 
     properties

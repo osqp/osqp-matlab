@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 function package_osqp(version)
 %   Create OSQP matlab interface package
 

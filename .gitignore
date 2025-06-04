@@ -2,6 +2,7 @@
 # -------------------------------------------------------------------
 # Out folder
 out/
+c_sources/build/
 
 # Prerequisites
 *.d

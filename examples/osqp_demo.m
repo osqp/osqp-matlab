@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 % Demo showing the usage of OSQP from Matlab and the code generation features.
 % This problem is the same one that is presented in the osqp_demo.c file.
 
@@ -13,10 +15,4 @@ solver = osqp;
 solver.setup(P, q, A, l, u, 'verbose', true)
 
 % Solve the problem using the Matlab solver
-mat_results = solver.solve()
-
-% Generate the embedded code with the default options
-solver.codegen('osqp_demo')
-
-% Solve the problem using the generated code
-[x, y, status_val, iter, run_time] = emosqp('solve')
+results = solver.solve();

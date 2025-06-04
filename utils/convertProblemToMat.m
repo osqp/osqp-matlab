@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 function convertProblemToMat(filename, Pdata, qdata, Adata, ldata, udata)
     Ptrip = load(Pdata);
     P = spconvert(Ptrip);

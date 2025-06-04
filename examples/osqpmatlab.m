@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 function [x, y, cost, status, iter] = osqpmatlab(problem, warm_start, settings) %#codegen
 % OSQPMATLAB Pure Matlab implementation of the OSQP solver
 %

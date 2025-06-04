@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 classdef update_matrices_tests < matlab.unittest.TestCase
     %TEST_BASIC_QP Solve Basic QP Problem
 
@@ -41,7 +43,7 @@ classdef update_matrices_tests < matlab.unittest.TestCase
             % Setup solver
             testCase.solver = osqp;
             testCase.solver.setup(testCase.P, testCase.q, testCase.A, ...
-                testCase.l, testCase.u, 'verbose', false, 'eps_rel', 1e-7, 'eps_abs', 1e-07, 'polish', true);
+                testCase.l, testCase.u, 'verbose', false, 'eps_rel', 1e-7, 'eps_abs', 1e-07, 'polishing', true);
 
             % Setup tolerance
             testCase.tol = 1e-04;

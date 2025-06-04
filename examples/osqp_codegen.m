@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 %% Simple problem
 m = 50;
 n = 100;
@@ -11,4 +13,4 @@ problem.q = randn(n,1);
 m = osqp;
 m.setup(problem.P, problem.q, problem.A, problem.l, problem.u);
 
-m.codegen('code', 'parameters', 'matrices');
+m.codegen('out/', 'emosqp');

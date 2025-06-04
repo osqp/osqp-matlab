@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-2019]
+        os: [ubuntu-latest, macos-latest, windows-2022]
 
     runs-on: ${{ matrix.os }}
 
@@ -24,18 +24,15 @@ jobs:
           submodules: 'recursive'
 
       - name: Install MATLAB
-        uses: matlab-actions/setup-matlab@v1
-        with:
-          # Use R2023a due to a licensing bug with R2023b and the GitHub actions shared runners
-          release: R2023a
+        uses: matlab-actions/setup-matlab@v2
 
       - name: Build OSQP interface
-        uses: matlab-actions/run-command@v1
+        uses: matlab-actions/run-command@v2
         with:
-          command: make_osqp
+          command: osqp.build('osqp_mex')
 
       - name: Run tests
-        uses: matlab-actions/run-tests@v1
+        uses: matlab-actions/run-tests@v2
         with:
           source-folder: ./
           select-by-folder: unittests

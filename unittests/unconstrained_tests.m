@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 classdef unconstrained_tests < matlab.unittest.TestCase
     %UNCONSTRAINED_TESTS Solve unconstrained quadratic program
     

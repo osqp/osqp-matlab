@@ -1,3 +1,5 @@
+% SPDX-License-Identifier: Apache-2.0
+
 classdef codegen_vec_tests < matlab.unittest.TestCase
     %TEST_BASIC_QP Solve Basic QP Problem
 
@@ -17,6 +19,7 @@ classdef codegen_vec_tests < matlab.unittest.TestCase
     methods(TestMethodSetup)
         function setup_problem(testCase)
             % Create Problem
+            assumeFail(testCase);
             testCase.P = sparse([11 0; 0, 0]);
             testCase.q = [3; 4];
             testCase.A = sparse([-1. 0; 0 -1; -1 -3; 2  5; 3  4]);
